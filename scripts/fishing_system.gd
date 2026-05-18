@@ -1,0 +1,136 @@
+class_name FishingSystem
+extends Node
+
+# Weights indexed by rarity order in RarityConfig.tiers (common=0 … ???=5)
+const BASE_RARITY_WEIGHTS: Array[float] = [100.0, 60.0, 30.0, 10.0, 3.0, 1.0]
+
+@export var items_db: ItemsDB
+@export var rarity_config: RarityConfig
+@export var minigame: FishingMinigame
+
+var _can_fish: bool = false
+var _in_spot: bool = false
+var _current_spot: FishingSpot = null
+var _player: Node3D = null
+var _game_state: Node = null
+
+func _ready() -> void:
+	_game_state = get_node_or_null("/root/GameState")
+	if _game_state == null:
+		push_error("FishingSystem: GameState autoload not found. Register game_state.gd in Project > Autoloads.")
+		return
+	_game_state.day_started.connect(_on_day_started)
+	_game_state.night_started.connect(_on_day_ended)
+	if _game_state.has_signal("transition_started"):
+		_game_state.transition_started.connect(_on_day_ended)
+	minigame.caught.connect(_on_caught)
+	minigame.failed.connect(_on_failed)
+	for spot: FishingSpot in get_tree().get_nodes_in_group("fishing_spots"):
+		spot.player_entered.connect(_on_spot_entered)
+		spot.player_exited.connect(_on_spot_exited)
+
+func _on_day_started() -> void:
+	_can_fish = true
+
+func _on_day_ended() -> void:
+	_can_fish = false
+	if minigame.is_active():
+		minigame.cancel()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _can_fish or not _in_spot or minigame.is_active():
+		return
+	if not InputMap.has_action("interact"):
+		return
+	if event.is_action_pressed("interact"):
+		_start_fishing()
+
+func _start_fishing() -> void:
+	if _current_spot != null and _player != null:
+		_player.global_rotation.y = _current_spot.facing_marker.global_rotation.y
+	var pole := _get_equipped_pole()
+	if pole == null:
+		return
+	var item := _roll_item(pole)
+	if item == null:
+		push_warning("FishingSystem: catch pool empty (all weapons locked by spawn_day?)")
+		return
+	minigame.start(item, pole)
+
+func _roll_item(pole: FishingPoleData) -> Resource:
+	var pool: Array[Resource] = []
+	var weights: Array[float] = []
+	var day: int = _game_state.get("day_count") if _game_state != null else 1
+
+	for w: FishWeaponData in items_db.fish_weapons:
+		if w.spawn_day <= day:
+			var idx := _rarity_index(w.rarity)
+			pool.append(w)
+			weights.append(BASE_RARITY_WEIGHTS[idx] * (1.0 + pole.base_lure_chance * w.rarity.lure_multiplier))
+
+	for h: HealingItemData in items_db.healing_items:
+		var idx := _rarity_index(h.rarity)
+		pool.append(h)
+		weights.append(BASE_RARITY_WEIGHTS[idx] * (1.0 + pole.base_lure_chance * h.rarity.lure_multiplier))
+
+	for p: FishingPoleData in items_db.fishing_poles:
+		var idx := _rarity_index(p.rarity)
+		pool.append(p)
+		weights.append(BASE_RARITY_WEIGHTS[idx] * (1.0 + pole.base_lure_chance * p.rarity.lure_multiplier))
+
+	if pool.is_empty():
+		return null
+	return _weighted_pick(pool, weights)
+
+func _weighted_pick(pool: Array[Resource], weights: Array[float]) -> Resource:
+	var total := 0.0
+	for w: float in weights:
+		total += w
+	var roll := randf() * total
+	var acc := 0.0
+	for i: int in pool.size():
+		acc += weights[i]
+		if roll <= acc:
+			return pool[i]
+	return pool[-1]
+
+func _rarity_index(rarity: RarityTier) -> int:
+	if rarity_config == null or rarity == null:
+		return 0
+	for i: int in rarity_config.tiers.size():
+		if rarity_config.tiers[i] == rarity:
+			return i
+	return 0
+
+func _get_equipped_pole() -> FishingPoleData:
+	if _player != null and _player.has_node("InventorySystem"):
+		var inv := _player.get_node("InventorySystem")
+		if inv.has_method("get_equipped_pole"):
+			var p: FishingPoleData = inv.get_equipped_pole()
+			if p != null:
+				return p
+	if not items_db.fishing_poles.is_empty():
+		return items_db.fishing_poles[0]
+	push_error("FishingSystem: no fishing poles in ItemsDB")
+	return null
+
+func _on_spot_entered(spot: FishingSpot, player: Node3D) -> void:
+	_in_spot = true
+	_current_spot = spot
+	_player = player
+
+func _on_spot_exited() -> void:
+	_in_spot = false
+	_current_spot = null
+
+func _on_caught(item: Resource) -> void:
+	if _player == null:
+		return
+	var inv := _player.get_node_or_null("InventorySystem")
+	if inv == null:
+		push_warning("FishingSystem: InventorySystem not on player — item lost until CJ's Phase 5 is merged")
+		return
+	inv.pickup(item)
+
+func _on_failed() -> void:
+	pass  # Phase 8: play fail SFX via AudioManager
