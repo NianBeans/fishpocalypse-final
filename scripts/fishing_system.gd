@@ -12,11 +12,14 @@ var _can_fish: bool = false
 var _in_spot: bool = false
 var _current_spot: FishingSpot = null
 var _player: Node3D = null
+var _locked_player: Node3D = null
 var _game_state: Node = null
 
 func _ready() -> void:
 	if minigame == null:
-		push_error("FishingSystem: 'minigame' export not assigned in Inspector.")
+		minigame = get_node_or_null("../UI/FishingMinigame")
+	if minigame == null:
+		push_error("FishingSystem: FishingMinigame not found at ../UI/FishingMinigame — assign via Inspector.")
 		return
 	if items_db == null:
 		push_error("FishingSystem: 'items_db' export not assigned in Inspector.")
@@ -40,8 +43,11 @@ func _on_day_ended() -> void:
 	_can_fish = false
 	if minigame.is_active():
 		minigame.cancel()
+		_unfreeze_player()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("INTERACT"):
+		print("[FishingSystem] F pressed | can_fish:%s | in_spot:%s | minigame_null:%s" % [_can_fish, _in_spot, minigame == null])
 	if not _can_fish or not _in_spot or minigame.is_active():
 		return
 	if not InputMap.has_action("INTERACT"):
@@ -60,6 +66,7 @@ func _start_fishing() -> void:
 	if _current_spot != null and _player != null:
 		_player.global_rotation.y = _current_spot.facing_marker.global_rotation.y
 	minigame.start(item, pole)
+	_freeze_player()
 
 func _roll_item(pole: FishingPoleData) -> Resource:
 	var pool: Array[Resource] = []
@@ -132,6 +139,7 @@ func _on_spot_exited() -> void:
 	_player = null
 
 func _on_caught(item: Resource) -> void:
+	_unfreeze_player()
 	if _player == null:
 		return
 	var inv := _player.get_node_or_null("InventorySystem")
@@ -141,7 +149,21 @@ func _on_caught(item: Resource) -> void:
 	inv.pickup(item)
 
 func _on_failed() -> void:
-	pass  # Phase 8: play fail SFX via AudioManager
+	_unfreeze_player()  # Phase 8: play fail SFX via AudioManager
+
+func _freeze_player() -> void:
+	if _player == null:
+		return
+	_locked_player = _player
+	_locked_player.set_physics_process(false)
+	if _locked_player is CharacterBody3D:
+		(_locked_player as CharacterBody3D).velocity = Vector3.ZERO
+
+func _unfreeze_player() -> void:
+	if _locked_player == null:
+		return
+	_locked_player.set_physics_process(true)
+	_locked_player = null
 
 func _connect_fishing_spots() -> void:
 	for spot: FishingSpot in get_tree().get_nodes_in_group("fishing_spots"):
