@@ -15,6 +15,12 @@ var _player: Node3D = null
 var _game_state: Node = null
 
 func _ready() -> void:
+	if minigame == null:
+		push_error("FishingSystem: 'minigame' export not assigned in Inspector.")
+		return
+	if items_db == null:
+		push_error("FishingSystem: 'items_db' export not assigned in Inspector.")
+		return
 	_game_state = get_node_or_null("/root/GameState")
 	if _game_state == null:
 		push_error("FishingSystem: GameState autoload not found. Register game_state.gd in Project > Autoloads.")
@@ -46,8 +52,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_start_fishing()
 
 func _start_fishing() -> void:
-	if _current_spot != null and _player != null:
-		_player.global_rotation.y = _current_spot.facing_marker.global_rotation.y
 	var pole := _get_equipped_pole()
 	if pole == null:
 		return
@@ -55,12 +59,17 @@ func _start_fishing() -> void:
 	if item == null:
 		push_warning("FishingSystem: catch pool empty (all weapons locked by spawn_day?)")
 		return
+	if _current_spot != null and _player != null:
+		_player.global_rotation.y = _current_spot.facing_marker.global_rotation.y
 	minigame.start(item, pole)
 
 func _roll_item(pole: FishingPoleData) -> Resource:
 	var pool: Array[Resource] = []
 	var weights: Array[float] = []
-	var day: int = _game_state.get("day_count") if _game_state != null else 1
+	var raw = _game_state.get("day_count") if _game_state != null else 1
+	if raw == null:
+		push_warning("FishingSystem: GameState.day_count not found — defaulting to 1")
+	var day: int = raw if raw != null else 1
 
 	for w: FishWeaponData in items_db.fish_weapons:
 		if w.spawn_day <= day:
@@ -122,6 +131,7 @@ func _on_spot_entered(spot: FishingSpot, player: Node3D) -> void:
 func _on_spot_exited() -> void:
 	_in_spot = false
 	_current_spot = null
+	_player = null
 
 func _on_caught(item: Resource) -> void:
 	if _player == null:
