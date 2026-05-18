@@ -73,12 +73,35 @@ All tunables live in `.tres` files backed by custom `Resource` subclasses. Desig
 
 | Class | Key `@export` fields |
 |---|---|
-| `FishWeaponData` | rarity, unlock_day, damage_per_second, projectiles_per_shot, recharge_cost, post_shot_delay, projectile_scene, sprite_frames, sfx |
-| `HealingItemData` | item_class (I–IV), heal_amount, sprite |
-| `FishingPoleData` | pole_type, catch_rate_modifier, rare_fish_bonus |
-| `BuffData` | stat_modifiers (dict), is_permanent |
-| `EnemyData` | enemy_type, hp, damage, speed, attack_type, rarity_weight, sprite_frames, sfx |
-| `RarityConfig` | tiers: `[common, uncommon, rare, epic, legendary, "???"]`, stat_multipliers |
+| `FishWeaponData` | `spawn_day`, `base_damage_per_shot`, `base_shot_delay`, `base_projectiles_per_shot`, `base_recharge_cost`, `rarity` (RarityTier), `projectile` (ProjectileData), `sprite_frames`, `sfx` |
+| `HealingItemData` | `item_class` (I–IV), `base_heal_amount`, `use_delay`, `stack_limit`, `rarity` (RarityTier), `sprite` |
+| `FishingPoleData` | `base_bar_size`, `base_lure_speed`, `base_lure_chance`, `rarity` (RarityTier), `sprite_frames` |
+| `ProjectileData` | `owner_type` (PLAYER/ENEMY), `speed`, `damage`, `lifetime`, `sprite` |
+| `BuffData` | `stackable`, `is_permanent`, `player_effects` (PlayerEffects), `weapon_effects` (WeaponEffects), `enemy_effects` (EnemyEffects), `spawn_effects` (SpawnEffects), `sprite` |
+| `EnemyData` | `hierarchy_tier`, `spawn_weight`, `base_hp`, `base_damage`, `base_speed`, `base_attack_delay`, `projectiles_per_shot`, `can_shoot`, `projectile` (ProjectileData), `sprite_frames`, `sfx` |
+| `RarityTier` | `name`, `color`, `weapon_multiplier`, `shot_delay_multiplier`, `lure_multiplier`, `cost_multiplier`, `heal_multiplier` |
+| `RarityConfig` | `tiers`: `[common, uncommon, rare, epic, legendary, "???"]` — array of `RarityTier` |
+| `ItemsDB` | `fish_weapons[]` (FishWeaponData), `healing_items[]` (HealingItemData), `fishing_poles[]` (FishingPoleData) |
+
+**Buff effect sub-classes** (GDScript inner classes or separate `.gd` files, not Resources):
+
+| Class | Fields |
+|---|---|
+| `PlayerEffects` | `move_speed_multiplier`, `damage_taken_multiplier` |
+| `WeaponEffects` | `damage_multiplier`, `shot_delay_multiplier`, `projectile_speed_multiplier`, `cost_multiplier` |
+| `EnemyEffects` | `hp_multiplier`, `damage_multiplier`, `speed_multiplier`, `attack_delay_multiplier` |
+| `SpawnEffects` | `fish_spawn_multiplier`, `enemy_spawn_multiplier`, `loot_spawn_multiplier` |
+
+**SpawnContext** (runtime cache, not a Resource — lives in `SpawnEnemySystem`):
+
+| Field | Purpose |
+|---|---|
+| `hp_multiplier` | Precomputed from all active buff `enemy_effects` |
+| `damage_multiplier` | Precomputed from all active buff `enemy_effects` |
+| `speed_multiplier` | Precomputed from all active buff `enemy_effects` |
+| `spawn_rate_multiplier` | Precomputed from all active buff `spawn_effects` |
+
+`SpawnContext` is rebuilt once per wave from `ActiveBuffs` (O(B)), then applied per enemy in O(1) — avoids O(N×B) recalculation at scale.
 
 ### Scenes (`scenes/`, `ui/`)
 
@@ -99,6 +122,17 @@ All tunables live in `.tres` files backed by custom `Resource` subclasses. Desig
 | `InventoryUI.tscn` | CanvasLayer | Open/close, equip/swap |
 | `IntroScreen.tscn` | CanvasLayer | Artist-statement context card |
 | `GameOverScreen.tscn` | CanvasLayer | Nights survived recap |
+
+### Team Ownership
+
+| Member | Owns |
+|---|---|
+| **CJ** | Player node, InventorySystem, CombatSystem, BuffSystem |
+| **DIO** | FishingSystem (Phase 6) + item data arrays: `FishWeaponsDB`, `HealingItemsDB`, `FishingPolesDB` (the `ItemsDB` resource and all concrete item `.tres` files) |
+| **SEN** | State/Day System (`GameState`), SpawnEnemySystem, enemy data array (`EnemyPool`) |
+| **GLS** | TBD — confirm with team |
+
+Systems communicate via signals. No member's system should call another's via hard node paths.
 
 ### PSX/Retro Render Pipeline
 
@@ -121,17 +155,17 @@ Project settings, folder structure, input map, autoload skeletons, `Main` + plac
 ### Phase 2 — Player Foundation
 `Player` movement + aim, HP/CP/SP stats + regen rules, reusable `Health` component, camera follows player.
 
-### Phase 3 — Ranged Combat
-`FishWeaponData` + `RarityConfig`; `CombatSystem` (fire/recharge/dodge/hot-swap); `Projectile`; test dummy.
+### Phase 3 — Ranged Combat _(CJ)_
+`FishWeaponData` + `RarityConfig`; `CombatSystem` (fire/recharge/dodge/hot-swap); `ProjectileData` + `Projectile` scene; test dummy.
 
-### Phase 4 — Enemy Pool & Spawn
-`EnemyData`; `Enemy` base + state machine; Normal/Tanky/Shooting variants; `SpawnEnemySystem` (rarity-weighted, population scales); overkill explode + drop; enemy damage to player.
+### Phase 4 — Enemy Pool & Spawn _(SEN)_
+`EnemyData`; `Enemy` base + state machine; Normal/Tanky/Shooting variants; `SpawnEnemySystem` with `SpawnContext` caching (rarity-weighted, population scales); overkill explode + drop; enemy damage to player.
 
-### Phase 5 — Item & Inventory
-Resource classes; `SpawnItemSystem` (scatter); `InventorySystem` (slots + store arrays); use healing item; `BuffSystem`; buff spawns on buff-days.
+### Phase 5 — Item & Inventory _(CJ)_
+`ItemsDB`; `SpawnItemSystem` (scatter); `InventorySystem` (slots + store arrays); use healing item; `BuffSystem` with `PlayerEffects`/`WeaponEffects`/`EnemyEffects`/`SpawnEffects`; buff spawns on buff-days.
 
-### Phase 6 — Fishing System
-Stardew-style bar-catch minigame, DAY-only, produces items into inventory, unlock-by-day fish gating.
+### Phase 6 — Fishing System _(DIO)_
+Stardew-style bar-catch minigame, DAY-only, produces items into inventory via `ItemsDB`. Unlock-by-day fish gating (`spawn_day` on `FishWeaponData`). DIO also owns all concrete item `.tres` files: `FishWeapons[]`, `HealingItems[]`, `FishingPoles[]`.
 
 ### Phase 7 — UI / HUD
 All HUD elements, inventory UI, screen effects (hurt/low-HP), intro-context + game-over screens.

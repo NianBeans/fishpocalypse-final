@@ -62,7 +62,7 @@ _None yet_
 
 ---
 
-## Phase 2 — Player Foundation `TODO`
+## Phase 2 — Player Foundation `TODO` _(CJ)_
 
 **Goal:** Player moves, aims, and has HP/CP/SP stats that follow the regen rules. Camera follows them.
 
@@ -90,25 +90,27 @@ _None yet_
 
 ---
 
-## Phase 3 — Ranged Combat `TODO`
+## Phase 3 — Ranged Combat `TODO` _(CJ)_
 
 **Goal:** Player fires fish weapons. CP/recharge/post-shot-delay are enforced. Dodge consumes SP. Weapon hot-swap works between main and secondary slots.
 
 ### Checklist
-- [ ] `FishWeaponData` Resource class with all `@export` fields
-- [ ] `RarityConfig` Resource class + rarity array; `apply_rarity()` helper computes final stats
-- [ ] At least 2 placeholder FishWeaponData `.tres` files (one common, one rare) for testing
+- [ ] `RarityTier` Resource class: `name`, `color`, `weapon_multiplier`, `shot_delay_multiplier`, `lure_multiplier`, `cost_multiplier`, `heal_multiplier`
+- [ ] `RarityConfig` Resource class: `tiers[]` array of `RarityTier` (common → "???")
+- [ ] `ProjectileData` Resource class: `owner_type` (PLAYER/ENEMY), `speed`, `damage`, `lifetime`, `sprite`
+- [ ] `FishWeaponData` Resource class: `spawn_day`, `base_damage_per_shot`, `base_shot_delay`, `base_projectiles_per_shot`, `base_recharge_cost`, `rarity` (RarityTier), `projectile` (ProjectileData), `sprite_frames`, `sfx`
+- [ ] At least 2 placeholder `FishWeaponData` `.tres` files (one common, one rare) for testing
 - [ ] `CombatSystem` script on Player:
-  - [ ] `fire()`: check CP ≥ recharge_cost → spawn Projectile(s) → deduct CP → start recharge timer + post_shot_delay timer
+  - [ ] `fire()`: check CP ≥ `base_recharge_cost` → spawn Projectile(s) → deduct CP → start recharge timer + `base_shot_delay` timer
   - [ ] `dodge()`: check SP ≥ cost → apply dodge impulse → deduct SP
   - [ ] `swap_weapon()`: toggle active slot between main and secondary
-- [ ] `Projectile.tscn`: Area3D, moves forward, `damage` set from weapon, despawn on hit or timeout
+- [ ] `Projectile.tscn`: Area3D, moves forward at `ProjectileData.speed`, applies `damage`, despawns on hit or `lifetime` timeout
 - [ ] Placeholder test-dummy target in scene (static node with Health component); projectile deals damage + dummy emits `died`
 - [ ] CP bar depletes and recharges visibly (debug label ok for now; HUD in Phase 7)
 
 ### Reminders
-- Projectile count per shot (`projectiles_per_shot`) means spawning multiple Projectile instances at slightly fanned angles
-- Recharge timer and post-shot-delay are separate: recharge = time until CP starts recovering; post_shot_delay = minimum time between shots regardless of CP
+- `base_projectiles_per_shot` > 1 means spawning multiple Projectile instances at slightly fanned angles
+- Recharge timer and `base_shot_delay` are separate: recharge = time until CP starts recovering; `base_shot_delay` = minimum time between shots regardless of CP
 
 ### Bugs
 _None yet_
@@ -118,26 +120,27 @@ _None yet_
 
 ---
 
-## Phase 4 — Enemy Pool & Spawn System `TODO`
+## Phase 4 — Enemy Pool & Spawn System `TODO` _(SEN)_
 
 **Goal:** Three fish enemy types spawn at night, navigate to player, attack. Population scales over nights. Overkill drops fire.
 
 ### Checklist
-- [ ] `EnemyData` Resource class with all `@export` fields
+- [ ] `EnemyData` Resource class: `hierarchy_tier`, `spawn_weight`, `base_hp`, `base_damage`, `base_speed`, `base_attack_delay`, `projectiles_per_shot`, `can_shoot`, `projectile` (ProjectileData), `sprite_frames`, `sfx`
 - [ ] `.tres` files for NormalFish, TankyFish, ShootingFish (placeholder stats)
 - [ ] `Enemy.tscn` base: CharacterBody3D + Health + billboard Sprite3D + NavigationAgent3D + state machine (`IDLE` → `CHASE` → `ATTACK` → `DEAD`)
 - [ ] `NormalFish.tscn`, `TankyFish.tscn`, `ShootingFish.tscn` inherit/compose Enemy with their EnemyData
-- [ ] ShootingFish fires `Projectile` toward player
+- [ ] ShootingFish fires `Projectile` toward player (uses `EnemyData.projectile`)
 - [ ] Enemy deals damage to Player on melee contact
 - [ ] `SpawnEnemySystem` node/autoload:
-  - [ ] Spawns N enemies at NIGHT start (configurable base count)
-  - [ ] Rarity-weighted distribution (Normal heavy, Tanky medium, Shooting low)
-  - [ ] Population scaling factor: each night, N increases by a multiplier
+  - [ ] `SpawnContext` inner class: `hp_multiplier`, `damage_multiplier`, `speed_multiplier`, `spawn_rate_multiplier` — rebuilt once per wave from active buffs (O(B)), applied per enemy in O(1)
+  - [ ] `BuildSpawnContext()`: iterate `ActiveBuffs`, accumulate `enemy_effects` + `spawn_effects` multipliers into `SpawnContext`
+  - [ ] `GetPopulationTarget()`: `BasePopulation * (1 + current_night * 0.25) * cached_context.spawn_rate_multiplier`
+  - [ ] `SpawnEnemy()`: weighted-random select from pool by `spawn_weight`, instantiate, apply `SpawnContext` multipliers
   - [ ] Enemies spawn at perimeter spawn points around island
 - [ ] On enemy death:
-  - [ ] Check overkill threshold (killed in < X time or with excess damage) → emit `overkilled` signal
+  - [ ] Check overkill threshold → emit `overkilled` signal
   - [ ] `SpawnItemSystem.scatter_drop(position, loot_table)` called on death
-  - [ ] Overkill: larger drop + visual explosion (placeholder particle or AudioStreamPlayer3D)
+  - [ ] Overkill: larger drop + visual explosion (placeholder particle)
 - [ ] Navigation mesh baked on Island; agents path correctly to player
 - [ ] `wave_cleared` fires when all enemies in the current wave are dead
 
@@ -153,30 +156,34 @@ _None yet_
 
 ---
 
-## Phase 5 — Item & Inventory System `TODO`
+## Phase 5 — Item & Inventory System `TODO` _(CJ)_
 
 **Goal:** Items drop and scatter, player picks them up, inventory slots are populated, healing items restore HP, buffs apply on buff-days.
 
 ### Checklist
-- [ ] `HealingItemData` Resource (classes I–IV, heal_amount)
-- [ ] `FishingPoleData` Resource (pole type, modifiers)
-- [ ] `BuffData` Resource (stat_modifiers dict, is_permanent)
-- [ ] `.tres` files: at least 2 HealingItems, 2 Buffs, 2 FishingPoles (placeholders)
+- [ ] `HealingItemData` Resource: `item_class` (I–IV), `base_heal_amount`, `use_delay`, `stack_limit`, `rarity` (RarityTier), `sprite`
+- [ ] `FishingPoleData` Resource: `base_bar_size`, `base_lure_speed`, `base_lure_chance`, `rarity` (RarityTier), `sprite_frames` _(data class only — DIO populates `.tres` files in Phase 6)_
+- [ ] `BuffData` Resource: `stackable`, `is_permanent`, `player_effects` (PlayerEffects), `weapon_effects` (WeaponEffects), `enemy_effects` (EnemyEffects), `spawn_effects` (SpawnEffects), `sprite`
+- [ ] Buff effect classes (GDScript inner classes): `PlayerEffects` (`move_speed_multiplier`, `damage_taken_multiplier`), `WeaponEffects` (`damage_multiplier`, `shot_delay_multiplier`, `projectile_speed_multiplier`, `cost_multiplier`), `EnemyEffects` (`hp_multiplier`, `damage_multiplier`, `speed_multiplier`, `attack_delay_multiplier`), `SpawnEffects` (`fish_spawn_multiplier`, `enemy_spawn_multiplier`, `loot_spawn_multiplier`)
+- [ ] `ItemsDB` Resource: `fish_weapons[]`, `healing_items[]`, `fishing_poles[]` — single source of truth for the loot pool
+- [ ] `.tres` files: at least 2 HealingItems, 2 Buffs (placeholders); FishWeapon + FishingPole `.tres` files deferred to DIO (Phase 6)
 - [ ] `ItemPickup.tscn`: RigidBody3D, holds an item Resource ref, collision pickup trigger
 - [ ] `SpawnItemSystem`: `scatter_drop(origin, items[])` spawns ItemPickup nodes with random linear velocity + downward gravity
 - [ ] `InventorySystem` script on Player:
   - [ ] Slots: `pole_slot`, `main_slot`, `secondary_slot`, `item_slot_1`, `item_slot_2`
-  - [ ] Store arrays: `fish_weapons[]`, `healing_items[]`, `fishing_poles[]`
+  - [ ] Store arrays: `fish_weapons[]`, `healing_items[]`, `fishing_poles[]` (mirrors `ItemsDB` structure)
   - [ ] `pickup(item_resource)` routes to correct store/slot
-  - [ ] `use_item(slot)` → HealingItem calls `player.health.heal(amount)`; FishWeapon equips to active slot
+  - [ ] `use_item(slot)` → HealingItem calls `player.health.heal(base_heal_amount * rarity.heal_multiplier)`; FishWeapon equips to active slot
 - [ ] `BuffSystem` script on Player:
-  - [ ] `apply_buff(buff_data)` modifies player stats per `stat_modifiers`
-  - [ ] Active buffs tracked; permanent buffs persist
+  - [ ] `apply_buff(buff_data)` accumulates multipliers from `player_effects` and `weapon_effects`
+  - [ ] Active buffs tracked in `active_buffs[]`; permanent buffs persist
+  - [ ] Weapon stat methods (`get_damage()`, `get_shot_delay()`, `get_cost()`) iterate `active_buffs` at call time
 - [ ] `buff_day_reached` signal from GameState → spawn a `BuffData` pickup near player
 - [ ] Playtest: enemy death drops healing item; player walks over it; HP restores correctly
 
 ### Reminders
 - `use_item` on a FishWeapon should equip it to the active weapon slot (main or secondary depending on what's empty/held)
+- `SpawnEnemySystem` reads `active_buffs` to rebuild `SpawnContext` — ensure `BuffSystem.active_buffs` is accessible via signal or getter
 
 ### Bugs
 _None yet_
@@ -186,23 +193,30 @@ _None yet_
 
 ---
 
-## Phase 6 — Fishing System `TODO`
+## Phase 6 — Fishing System `TODO` _(DIO)_
 
 **Goal:** During DAY, player can fish. The minigame produces items into inventory. Fish unlocked by day count.
 
 ### Checklist
+- [ ] Populate `ItemsDB` with all concrete `.tres` files:
+  - [ ] `FishWeaponData` instances (N weapons, varied rarities and `spawn_day` thresholds)
+  - [ ] `HealingItemData` instances (class I–IV)
+  - [ ] `FishingPoleData` instances (normal, reinforced, fish pole variant)
 - [ ] `FishingSystem` script: only active when `GameState` state == `DAY`
 - [ ] `interact` input near water/dock → start fishing
 - [ ] `FishingMinigame.tscn` (Stardew-style bar-catch UI):
   - [ ] Vertical bar, fish cursor moves erratically; player cursor controlled by button hold
+  - [ ] Cursor speed/bar size driven by equipped `FishingPoleData` (`base_bar_size`, `base_lure_speed`)
   - [ ] Fill a progress meter while fish cursor is inside player cursor zone
   - [ ] Success → produce item; failure → nothing (or line snap animation)
-- [ ] Fish pool filtered by `unlock_day ≤ GameState.day_count`
+- [ ] Fish pool filtered by `spawn_day ≤ GameState.day_count` — only eligible items from `ItemsDB` are catchable
+- [ ] Catch probability influenced by `FishingPoleData.base_lure_chance * rarity.lure_multiplier`
 - [ ] Produced item (FishWeaponData or HealingItemData or FishingPoleData) added to `InventorySystem` via `pickup()`
 - [ ] Minigame cancels if DAY ends mid-fish (TRANSITION signal)
 
 ### Reminders
-- Fish unlock gating is the primary progression mechanic — tune thresholds in Phase 9
+- `spawn_day` on `FishWeaponData` is the primary progression gate — tune thresholds in Phase 9
+- `base_lure_chance` and `lure_multiplier` from `RarityTier` together control rare-fish probability
 
 ### Bugs
 _None yet_
@@ -212,7 +226,7 @@ _None yet_
 
 ---
 
-## Phase 7 — UI / HUD `TODO`
+## Phase 7 — UI / HUD `TODO` _(TBD — GLS?)_
 
 **Goal:** All player information is visible. Inventory can be opened and managed. Art-framing screens are in place.
 
@@ -249,7 +263,7 @@ _None yet_
 
 ---
 
-## Phase 8 — Art & Audio Integration `TODO`
+## Phase 8 — Art & Audio Integration `TODO` _(TBD — GLS?)_
 
 **Goal:** The game looks and sounds like Fishpocalypse. The arts course concepts are fully legible.
 
@@ -324,12 +338,12 @@ _None yet_
 ### Checklist
 
 #### Balance
-- [ ] Tune `RarityConfig` stat multipliers (are rare weapons meaningfully stronger?)
+- [ ] Tune `RarityTier` stat multipliers (`weapon_multiplier`, `shot_delay_multiplier`, etc. — are rare weapons meaningfully stronger?)
 - [ ] Tune `SpawnEnemySystem` scaling factor (does difficulty ramp feel fair/escalating?)
 - [ ] Tune weapon economy: CP costs vs recharge rate — can player sustain fire without trivially camping?
 - [ ] Tune buff-day rewards — are buffs impactful enough to feel earned?
-- [ ] Tune fishing drop rates — are good weapons too easy/hard to fish up?
-- [ ] Tune fish unlock-by-day gates
+- [ ] Tune fishing drop rates — are good weapons too easy/hard to fish up? (`base_lure_chance` + `lure_multiplier` per tier)
+- [ ] Tune `spawn_day` gates on `FishWeaponData` — does progression feel earned?
 
 #### Performance
 - [ ] Enemy pooling: pre-instantiate N enemies at level load; recycle on death instead of `queue_free()`
