@@ -1112,9 +1112,21 @@ Then in `project.godot` add:
 GameState="*res://autoloads/game_state.gd"
 ```
 
-- [ ] **Register GameState stub** _(skip if SEN's is already in place)_
+- [ ] **Add `interact` to the input map in `project.godot`**
 
-Create `autoloads/game_state.gd` with the stub above, then edit `project.godot`:
+The existing input map uses `W`, `A`, `S`, `D`, `DODGE`, `SHOOT` — `interact` is absent. Both `FishingSystem` and `FishingMinigame` call `Input.is_action_pressed("interact")` and will crash without it. Add this block inside the `[input]` section (maps to F key, physical keycode 70):
+
+```
+interact={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":70,"key_label":0,"unicode":102,"location":0,"echo":false,"script":null)
+]
+}
+```
+
+- [ ] **Register GameState stub** _(skip if SEN's is already in place — confirmed absent as of 2026-05-18)_
+
+Create `autoloads/game_state.gd` with the stub above, then add a new `[autoload]` section to `project.godot`:
 
 ```
 [autoload]
