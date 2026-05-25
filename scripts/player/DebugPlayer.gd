@@ -19,22 +19,18 @@ var current_anim := ""
 func _ready() -> void:
 	add_to_group("player")
 	inventory.slot_changed.connect(func(_slot): _log_inventory())
+	if spotlight:
+		spotlight.visible = false
+	var day_night_system = get_tree().get_first_node_in_group("day_night")
+	if day_night_system:
+		day_night_system.day_night_changed.connect(_on_night_changed)
+		print("[DNS] Found")
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	else:
 		velocity.y = 0
-	if spotlight: spotlight.visible = false
-	
-	# Connect to Day/Night system
-	var day_night_system = get_tree().get_first_node_in_group("day_night")
-	if day_night_system: day_night_system.day_night_changed.connect(_on_night_changed); print("[DNS] Found")
-	
-# Suga kung gabii na
-func _on_night_changed(active: bool) -> void:
-	if spotlight: spotlight.visible = active
-
 
 	if is_dodging:
 		dodge_timer -= delta
@@ -72,6 +68,10 @@ func _on_night_changed(active: bool) -> void:
 
 	_play_move_anim()
 	move_and_slide()
+
+func _on_night_changed(active: bool) -> void:
+	if spotlight:
+		spotlight.visible = active
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
