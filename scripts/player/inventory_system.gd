@@ -1,80 +1,119 @@
 class_name InventorySystem extends Node
 
+signal slot_changed(slot_name: String)
+signal item_dropped(data: Resource)
 signal equipped_weapon_changed(weapon: FishWeaponData)
 signal equipped_pole_changed(pole: FishingPoleData)
-signal item_picked_up(item: Resource)
-signal item_used(item: HealingItemData, heal_amount: float)
-signal inventory_changed()
 
 @export var items_db: ItemsDB
 
-var equipped_weapon: FishWeaponData = null
-var equipped_pole: FishingPoleData = null
-var healing_items: Dictionary = {}    # HealingItemData -> stack count
-var weapons: Array[FishWeaponData] = []
-var poles: Array[FishingPoleData] = []
+var main_slot: FishWeaponData = null
+var secondary_slot: FishWeaponData = null
+var item_slot_1: HealingItemData = null
+var item_slot_2: HealingItemData = null
+var pole_slot: FishingPoleData = null
+
+var _active_weapon_slot: String = "main_slot"
 
 
 func _ready() -> void:
-	# Auto-equip first pole so FishingSystem always gets one
-	if items_db and not items_db.fishing_poles.is_empty():
-		_equip_pole(items_db.fishing_poles[0])
+      if items_db and not items_db.fishing_poles.is_empty():
+              _equip_pole(items_db.fishing_poles[0])
 
 
-func pickup(item: Resource) -> void:
-	if item is FishWeaponData:    _add_weapon(item)
-	elif item is HealingItemData: _add_healing_item(item)
-	elif item is FishingPoleData: _add_pole(item)
-	item_picked_up.emit(item)
-	inventory_changed.emit()
+func pickup(item_node: Node3D) -> void:
+      var data: Resource = item_node.get("data")
+      if data == null:
+              push_warning("InventorySystem: pickup called on node with no 'data
+              return
+      if data is FishWeaponData:
+              _pickup_weapon(data, item_node)
+      elif data is HealingItemData:
+              _pickup_healing(data, item_node)
+      elif data is FishingPoleData:
+              _equip_pole(data)
+              item_node._on_picked_up()
 
 
 func get_equipped_pole() -> FishingPoleData:
-	return equipped_pole
+      return pole_slot
 
 
-func cycle_weapon(direction: int) -> void:
-	if weapons.is_empty():
-		return
-	var idx := weapons.find(equipped_weapon)
-	idx = (idx + direction) % weapons.size()
-	_equip_weapon(weapons[idx])
+func use_item(slot: String) -> void:
+      var data: HealingItemData
+      match slot:
+              "item_slot_1": data = item_slot_1
+              "item_slot_2": data = item_slot_2
+              _: return
+      if data == null:
+              return
+      var health: HealthComponent = get_parent().get_node_or_null("HealthCompone
+      if health:
+              var heal_amount := data.base_heal_amount * data.rarity.heal_multip
+              health.heal(heal_amount)
+      else:
+              push_warning("InventorySystem: HealthComponent not found on player
+skipped")
+      match slot:
+              "item_slot_1": item_slot_1 = null
+              "item_slot_2": item_slot_2 = null
+      slot_changed.emit(slot)
 
 
-func use_healing_item() -> void:
-	if healing_items.is_empty():
-		return
-	var item: HealingItemData = healing_items.keys()[0]
-	var heal_amount := item.base_heal_amount * item.rarity.heal_multiplier
-	healing_items[item] -= 1
-	if healing_items[item] <= 0:
-		healing_items.erase(item)
-	item_used.emit(item, heal_amount)
-	inventory_changed.emit()
+func drop_item(slot: String) -> void:
+      var data: Resource = null
+      match slot:
+              "main_slot":      data = main_slot;      main_slot = null
+              "secondary_slot": data = secondary_slot; secondary_slot = null
+              "item_slot_1":    data = item_slot_1;    item_slot_1 = null
+              "item_slot_2":    data = item_slot_2;    item_slot_2 = null
+              _: return
+      if data == null:
+              return
+      item_dropped.emit(data)
+      slot_changed.emit(slot)
 
 
-func _add_weapon(w: FishWeaponData) -> void:
-	weapons.append(w)
-	if equipped_weapon == null:
-		_equip_weapon(w)
+func set_active_weapon_slot(slot: String) -> void:
+      if slot in ["main_slot", "secondary_slot"]:
+              _active_weapon_slot = slot
 
 
-func _add_healing_item(h: HealingItemData) -> void:
-	var current: int = healing_items.get(h, 0)
-	healing_items[h] = mini(current + 1, h.stack_limit)
+func _pickup_weapon(data: FishWeaponData, item_node: Node3D) -> void:
+      if main_slot == null:
+              main_slot = data
+              item_node._on_picked_up()
+              equipped_weapon_changed.emit(data)
+              slot_changed.emit("main_slot")
+      elif secondary_slot == null:
+              secondary_slot = data
+              item_node._on_picked_up()
+              slot_changed.emit("secondary_slot")
+      else:
+              var old_data: FishWeaponData
+              if _active_weapon_slot == "main_slot":
+                      old_data = main_slot
+                      main_slot = data
+              else:
+                      old_data = secondary_slot
+                      secondary_slot = data
+              item_node._on_picked_up()
+              equipped_weapon_changed.emit(data)
+              slot_changed.emit(_active_weapon_slot)
+              item_dropped.emit(old_data)
 
 
-func _add_pole(p: FishingPoleData) -> void:
-	poles.append(p)
-	if equipped_pole == null:
-		_equip_pole(p)
+func _pickup_healing(data: HealingItemData, item_node: Node3D) -> void:
+      if item_slot_1 == null:
+              item_slot_1 = data
+              item_node._on_picked_up()
+              slot_changed.emit("item_slot_1")
+      elif item_slot_2 == null:
+              item_slot_2 = data
+              item_node._on_picked_up()
+              slot_changed.emit("item_slot_2")
 
 
 func _equip_pole(p: FishingPoleData) -> void:
-	equipped_pole = p
-	equipped_pole_changed.emit(p)
-
-
-func _equip_weapon(w: FishWeaponData) -> void:
-	equipped_weapon = w
-	equipped_weapon_changed.emit(w)
+      pole_slot = p
+      equipped_pole_changed.emit(p)
