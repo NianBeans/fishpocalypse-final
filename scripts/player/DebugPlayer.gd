@@ -1,13 +1,18 @@
 extends CharacterBody3D
-
 @export var walk_speed := 5.0
 @export var run_speed := 9.0
 @export var dodge_speed := 18.0
 @export var dodge_time := 0.15
 @export var gravity := 20.0
-
 @onready var anim: AnimatedSprite3D = $Sprite3D
 @onready var spotlight: SpotLight3D = $SpotLight3D
+
+var last_valid_position := Vector3.ZERO
+var previous_valid_position := Vector3.ZERO
+var has_valid_position := false
+const WATER_Y_LEVEL := -1.5
+const SAVE_INTERVAL := 0.5
+var save_timer := 0.0
 
 var is_dodging := false
 var dodge_timer := 0.0
@@ -17,22 +22,18 @@ var current_anim := ""
 func _ready() -> void:
 	add_to_group("player")
 	if spotlight: spotlight.visible = false
-	
-	# Connect to Day/Night system
 	var day_night_system = get_tree().get_first_node_in_group("day_night")
 	if day_night_system: day_night_system.day_night_changed.connect(_on_night_changed); print("[DNS] Found")
-	
-# Suga kung gabii na
+
 func _on_night_changed(active: bool) -> void:
 	if spotlight: spotlight.visible = active
 
-
 func _physics_process(delta):
-	# gravity
+	save_timer += delta
+
 	if not is_on_floor(): velocity.y -= gravity * delta
 	else: velocity.y = 0
-	
-	# DODGE STATE
+
 	if is_dodging:
 		dodge_timer -= delta
 		velocity.x = dodge_dir.x * dodge_speed
@@ -41,44 +42,51 @@ func _physics_process(delta):
 		if dodge_timer <= 0:
 			is_dodging = false
 		move_and_slide()
+		_check_ocean_boundary()
 		return
-		
-	# INPUT
+
 	var input_dir := Vector3.ZERO
 	if Input.is_action_pressed("D"): input_dir.x += 1
 	if Input.is_action_pressed("A"): input_dir.x -= 1
 	if Input.is_action_pressed("S"): input_dir.z += 1
 	if Input.is_action_pressed("W"): input_dir.z -= 1
 	input_dir = input_dir.normalized()
-	
+
 	var speed = walk_speed
 	if Input.is_action_pressed("RUN"): speed = run_speed
-	
+
 	velocity.x = input_dir.x * speed
 	velocity.z = input_dir.z * speed
-	
-	# DODGE START
+
 	if Input.is_action_just_pressed("DODGE") and input_dir != Vector3.ZERO:
 		is_dodging = true
 		dodge_timer = dodge_time
 		dodge_dir = input_dir
 		return
-		
-	# PLACEHOLDER for SHOOT
+
 	if Input.is_action_just_pressed("SHOOT"):
-		# if player currently equipping is "weapon":
-			#weapon.shoot()
-		# if player currently equipping is "weapon":
-			#item.consume()
-		# else player is not holding anything
 		print("Shoot!")
-		
-	# ANIMATION and AUDIO player
+
 	_play_move_anim()
-	
 	move_and_slide()
-	
-# Handles animations for now
+	_check_ocean_boundary()
+
+func _check_ocean_boundary() -> void:
+	if global_position.y <= WATER_Y_LEVEL:
+		_push_back_to_land()
+	else:
+		if is_on_floor() and save_timer >= SAVE_INTERVAL:
+			save_timer = 0.0
+			previous_valid_position = last_valid_position
+			last_valid_position = global_position
+			has_valid_position = true
+
+func _push_back_to_land() -> void:
+	if not has_valid_position:
+		return
+	global_position = previous_valid_position
+	velocity = Vector3.ZERO
+
 func _play_move_anim() -> void:
 	if Input.is_action_pressed("W"):
 		_play_anim("walk_back")
@@ -90,7 +98,7 @@ func _play_move_anim() -> void:
 		_play_anim("walk_right")
 	else:
 		_play_anim("idle")
-		
+
 func _play_anim(name: String) -> void:
 	if current_anim == name: return
 	current_anim = name
