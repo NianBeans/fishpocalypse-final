@@ -123,7 +123,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	match _state:
 		State.WAITING:
-			# Early press — fail the cast, player must recast
+			# Early press — cancel cast; consume event so FishingSystem doesn't re-cast on same keypress
+			get_viewport().set_input_as_handled()
 			_set_state(State.IDLE)
 			failed.emit()
 		State.BITE:
