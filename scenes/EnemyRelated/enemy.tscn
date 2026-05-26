@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://2kqy5yq4kdod"]
 
 [ext_resource type="Script" uid="uid://b71aiflcq4ca1" path="res://scripts/enemy.gd" id="1_a3pup"]
-[ext_resource type="Texture2D" uid="uid://kcjhd5bn20pc" path="res://assets/sprites/fish.png" id="2_2nrvm"]
+[ext_resource type="Texture2D" uid="uid://dv6sm1evvirtr" path="res://assets/sprites/missing_sprite.png" id="2_rdqou"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_3qkkx"]
 size = Vector3(6.0334473, 5.689392, 1)
@@ -12,7 +12,7 @@ script = ExtResource("1_a3pup")
 
 [node name="Sprite3D" type="Sprite3D" parent="." unique_id=1964112050]
 transform = Transform3D(1, 0, 0, 0, 0.9077775, 0.4194521, 0, -0.4194521, 0.9077775, 0, 3.657371, 0)
-texture = ExtResource("2_2nrvm")
+texture = ExtResource("2_rdqou")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1680708305]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4407959, 2.8456116, 0)

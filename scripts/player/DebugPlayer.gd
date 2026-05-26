@@ -36,7 +36,14 @@ const WATER_Y_LEVEL := -1.5
 const SAVE_INTERVAL := 0.5
 var save_timer := 0.0
 
+var invincibility_timer := 0.0
+const INVINCIBILITY_TIME := 0.5
+
+var is_dodging := false
+var dodge_timer := 0.0
+var dodge_dir := Vector3.ZERO
 var current_anim := ""
+
 var ghost_interval := 0.01
 var ghost_timer := 0.0
 var was_moving_before_dodge := false
@@ -73,10 +80,28 @@ func _physics_process(delta: float) -> void:
 			cp_recharge_blocked = false
 	if not is_on_floor(): velocity.y -= gravity * delta
 	else: velocity.y = 0
+	if invincibility_timer > 0.0:
+		invincibility_timer -= delta
 
-	if combat.is_dodging:
-		_handle_dodge_physics(delta)
-		_update_aim()
+	if is_dodging:
+		dodge_timer -= delta
+		ghost_timer -= delta
+		
+		velocity.x = dodge_dir.x * dodge_speed
+		velocity.z = dodge_dir.z * dodge_speed
+		_play_anim("dodge")
+		if ghost_timer <= 0.0:
+			ghost_timer = ghost_interval
+			_spawn_dodge_ghost()
+		
+		if dodge_timer <= 0:
+			is_dodging = false
+			ghost_timer = 0.0
+			if was_moving_before_dodge:
+				_play_walk_sound()
+		
+		move_and_slide()
+		_check_ocean_boundary()
 		return
 
 	var input_dir := Vector3.ZERO
@@ -89,6 +114,18 @@ func _physics_process(delta: float) -> void:
 	var speed := run_speed if Input.is_action_pressed("RUN") else walk_speed
 	velocity.x = input_dir.x * speed
 	velocity.z = input_dir.z * speed
+
+	if Input.is_action_just_pressed("DODGE") and input_dir != Vector3.ZERO:
+		is_dodging = true
+		dodge_timer = dodge_time
+		dodge_dir = input_dir
+		ghost_timer = 0.0
+		was_moving_before_dodge = (input_dir != Vector3.ZERO)
+		_play_dodge_sound()
+		return
+
+	if Input.is_action_just_pressed("SHOOT"):
+		print("Shoot! (CombatSystem not yet wired — Phase 3)")
 
 	_play_move_anim()
 	move_and_slide()
@@ -151,7 +188,6 @@ func _on_equipped_weapon_changed(weapon_node: Weapon) -> void:
 		return
 	equip_weapon(weapon_node)
 
-
 func _check_ocean_boundary() -> void:
 	if global_position.y <= WATER_Y_LEVEL:
 		_push_back_to_land()
@@ -168,6 +204,15 @@ func _push_back_to_land() -> void:
 	global_position = previous_valid_position
 	velocity = Vector3.ZERO
 
+func _take_damage(amount: float) -> void:
+	if invincibility_timer > 0.0:
+		return
+	health.take_damage(amount)
+	invincibility_timer = INVINCIBILITY_TIME
+	print("[Player] took %.1f damage" % amount)
+
+func _on_night_changed(active: bool) -> void:
+	if spotlight: spotlight.visible = active
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
@@ -177,7 +222,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		inventory.drop_item("main_slot")
 		_log_inventory()
 
-
 func _log_inventory() -> void:
 	print("[Inventory] main=%s | secondary=%s | item1=%s | item2=%s" % [
 		inventory.main_slot.resource_path if inventory.main_slot else "empty",
@@ -185,7 +229,6 @@ func _log_inventory() -> void:
 		inventory.item_slot_1.resource_path if inventory.item_slot_1 else "empty",
 		inventory.item_slot_2.resource_path if inventory.item_slot_2 else "empty",
 	])
-
 
 func _play_move_anim() -> void:
 	var is_moving := Input.is_action_pressed("W") or Input.is_action_pressed("S") \
@@ -196,19 +239,13 @@ func _play_move_anim() -> void:
 	elif Input.is_action_pressed("A"): _play_anim("walk_left")
 	elif Input.is_action_pressed("D"): _play_anim("walk_right")
 	else: _play_anim("idle")
-
+	
 	if audio_player:
 		if is_moving and not combat.is_dodging:
 			_play_walk_sound()
-		elif audio_player.stream == _SFX_WALK:
-			audio_player.stop()
-
-
-func _play_anim(anim_name: String) -> void:
-	if current_anim == anim_name: return
-	current_anim = anim_name
-	anim.play(anim_name)
-
+		else:
+			if audio_player.playing and audio_player.stream == preload("res://assets/audio/player_walk.mp3"):
+				audio_player.stop()
 
 func _play_walk_sound() -> void:
 	if audio_player and not audio_player.playing:
@@ -216,7 +253,6 @@ func _play_walk_sound() -> void:
 		audio_player.volume_db = 1.0
 		audio_player.pitch_scale = randf_range(0.95, 1.05)
 		audio_player.play()
-
 
 func _play_dodge_sound() -> void:
 	if audio_player:
@@ -226,36 +262,15 @@ func _play_dodge_sound() -> void:
 		audio_player.pitch_scale = 1.5
 		audio_player.play()
 
+func _play_anim(name: String) -> void:
+	if current_anim == name: return
+	current_anim = name
+	anim.play(name)
 
-func start_dodge(direction: Vector3) -> void:
-	was_moving_before_dodge = (direction != Vector3.ZERO)
-
-
-func end_dodge() -> void:
-	if was_moving_before_dodge and audio_player:
-		_play_walk_sound()
-
-
-# No change needed here — node arrives already detached from the world by InventorySystem
-func equip_weapon(weapon_node: Weapon) -> void:
-	for child in weapon_holder.get_children():
-		# FIX: only free children that are NOT the incoming weapon node
-		# (in case of redundant calls mid-swap)
-		if child != weapon_node:
-			child.queue_free()
-	if weapon_node:
-		if weapon_node.get_parent() != weapon_holder:
-			weapon_holder.add_child(weapon_node)   # reparent into holder
-		combat.equip_weapon_node(weapon_node)       # then activate
-
-func deduct_sp(amount: float) -> void:
-	SP = max(SP - amount, 0)
-
-
-func deduct_cp(amount: float) -> void:
-	CP = max(CP - amount, 0)
-
-
-func block_cp_recharge(duration: float) -> void:
-	cp_recharge_blocked = true
-	cp_recharge_timer = duration
+func _spawn_dodge_ghost() -> void:
+	var ghost := Node3D.new()
+	ghost.set_script(load("res://scripts/player/dodge_ghost.gd"))
+	get_parent().add_child(ghost)
+	ghost.global_position = global_position
+	ghost.global_rotation = global_rotation
+	ghost.setup(anim, anim.frame)
