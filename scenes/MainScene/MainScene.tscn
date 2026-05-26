@@ -27,7 +27,7 @@
 [ext_resource type="Resource" uid="uid://lih8tf53aotr" path="res://assets/resources/rarities/rarity_config.tres" id="18_rc"]
 [ext_resource type="PackedScene" uid="uid://x0tobd048vlo" path="res://scenes/EnemyRelated/enemySpawner.tscn" id="21_v3fq3"]
 [ext_resource type="PackedScene" uid="uid://dwr1m6px173c6" path="res://scenes/DayNightSystem/dayNightSystem.tscn" id="23_bv014"]
-[ext_resource type="PackedScene" path="res://scenes/EnemyRelated/tank_fish.tscn" id="24_oj3ja"]
+[ext_resource type="PackedScene" uid="uid://sheavwaiaj2f" path="res://scenes/EnemyRelated/tank_fish.tscn" id="24_oj3ja"]
 [ext_resource type="PackedScene" uid="uid://by4e1q3ce1ehm" path="res://scenes/EnemyRelated/fish.tscn" id="25_mlmqm"]
 
 [sub_resource type="Texture2D" id="Texture2D_p1dug"]
@@ -668,7 +668,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.867311, 0.5601834, -17.111
 disable_mode = 2
 
 [node name="FishingSpot" parent="." unique_id=1985687269 instance=ExtResource("16_fsp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.83638, 0.5590067, -20.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.223, 0, -10.332)
 
 [node name="Spawner" parent="." unique_id=1235847215 node_paths=PackedStringArray("player") instance=ExtResource("21_v3fq3")]
 player = NodePath("../Player")
