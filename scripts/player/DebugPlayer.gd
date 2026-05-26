@@ -169,12 +169,8 @@ func get_facing_dir() -> Vector3:
 
 func _on_night_changed(active: bool) -> void:
 	if spotlight: spotlight.visible = active
-
-
 func _on_health_changed(current: int, _maximum: int) -> void:
 	HP = current
-
-
 func _on_player_died() -> void:
 	set_physics_process(false)
 
@@ -186,7 +182,7 @@ func _on_equipped_weapon_changed(weapon_node: Weapon) -> void:
 			child.queue_free()
 		combat.equip_weapon_node(null)
 		return
-	equip_weapon(weapon_node)
+	## equip_weapon(weapon_node)
 
 func _check_ocean_boundary() -> void:
 	if global_position.y <= WATER_Y_LEVEL:
@@ -210,10 +206,7 @@ func _take_damage(amount: float) -> void:
 	health.take_damage(amount)
 	invincibility_timer = INVINCIBILITY_TIME
 	print("[Player] took %.1f damage" % amount)
-
-func _on_night_changed(active: bool) -> void:
-	if spotlight: spotlight.visible = active
-
+	
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
 		inventory.use_item("item_slot_1")
@@ -267,6 +260,11 @@ func _play_anim(name: String) -> void:
 	current_anim = name
 	anim.play(name)
 
+func start_dodge(direction: Vector3) -> void:
+	was_moving_before_dodge = (direction != Vector3.ZERO)
+func end_dodge() -> void:
+	if was_moving_before_dodge and audio_player:
+		_play_walk_sound()
 func _spawn_dodge_ghost() -> void:
 	var ghost := Node3D.new()
 	ghost.set_script(load("res://scripts/player/dodge_ghost.gd"))
@@ -274,3 +272,8 @@ func _spawn_dodge_ghost() -> void:
 	ghost.global_position = global_position
 	ghost.global_rotation = global_rotation
 	ghost.setup(anim, anim.frame)
+	
+func deduct_sp(amount: float) -> void:
+	SP = max(SP - amount, 0)
+func deduct_cp(amount: float) -> void:
+	CP = max(CP - amount, 0)
