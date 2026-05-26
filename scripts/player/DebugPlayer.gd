@@ -1,5 +1,23 @@
 extends CharacterBody3D
 
+@onready var inventory: InventorySystem = $COMPONENTS/InventorySystem
+@onready var health: HealthComponents = $COMPONENTS/HealthComponent
+@onready var combat: CombatSystem = $COMPONENTS/CombatSystem
+
+@onready var camera: Camera3D = get_viewport().get_camera_3d()
+@onready var weapon_holder: Marker3D = $Kamot
+
+var _facing_dir := Vector3.FORWARD
+
+@export var HP := 100
+@export var CP := 100
+@export var SP := 100
+@export var RR_CP := 20
+@export var RR_SP := 20
+
+var cp_recharge_blocked := false
+var cp_recharge_timer := 0.0
+
 @export var walk_speed := 5.0
 @export var run_speed := 9.0
 @export var dodge_speed := 25.0
@@ -7,14 +25,13 @@ extends CharacterBody3D
 @export var gravity := 20.0
 
 @onready var anim: AnimatedSprite3D = $Sprite3D
-@onready var inventory: InventorySystem = $InventorySystem
-@onready var health: HealthComponent = $HealthComponent
 @onready var spotlight: SpotLight3D = $SpotLight3D
 @onready var audio_player: AudioStreamPlayer3D = $AudioStreamPlayer3D
 
 var last_valid_position := Vector3.ZERO
 var previous_valid_position := Vector3.ZERO
 var has_valid_position := false
+
 const WATER_Y_LEVEL := -1.5
 const SAVE_INTERVAL := 0.5
 var save_timer := 0.0
@@ -31,25 +48,36 @@ var ghost_interval := 0.01
 var ghost_timer := 0.0
 var was_moving_before_dodge := false
 
+const _SFX_WALK  = preload("res://assets/audio/player_walk.mp3")
+const _SFX_DODGE = preload("res://assets/audio/player_dodge.mp3")
+
 
 func _ready() -> void:
 	add_to_group("player")
 	if audio_player:
 		audio_player.volume_db = 5.0
 		audio_player.pitch_scale = 1.0
-		
 	inventory.slot_changed.connect(func(_slot): _log_inventory())
+	# FIX: connect equipped_weapon_changed so swapping slots calls equip_weapon
+	inventory.equipped_weapon_changed.connect(_on_equipped_weapon_changed)
 	if spotlight: spotlight.visible = false
-	
 	var day_night_system = get_tree().get_first_node_in_group("day_night")
 	if day_night_system:
 		day_night_system.day_night_changed.connect(_on_night_changed)
-		print("[DNS] Found")
+	if health:
+		health.initialize(HP)
+		health.died.connect(_on_player_died)
+		health.health_changed.connect(_on_health_changed)
+	combat.dodged.connect(func(): pass)
+	inventory.set_health_component(health)
 
 
 func _physics_process(delta: float) -> void:
 	save_timer += delta
-
+	if cp_recharge_blocked:
+		cp_recharge_timer -= delta
+		if cp_recharge_timer <= 0.0:
+			cp_recharge_blocked = false
 	if not is_on_floor(): velocity.y -= gravity * delta
 	else: velocity.y = 0
 	if invincibility_timer > 0.0:
@@ -81,11 +109,9 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_pressed("A"): input_dir.x -= 1
 	if Input.is_action_pressed("S"): input_dir.z += 1
 	if Input.is_action_pressed("W"): input_dir.z -= 1
+
 	input_dir = input_dir.normalized()
-
-	var speed = walk_speed
-	if Input.is_action_pressed("RUN"): speed = run_speed
-
+	var speed := run_speed if Input.is_action_pressed("RUN") else walk_speed
 	velocity.x = input_dir.x * speed
 	velocity.z = input_dir.z * speed
 
@@ -104,6 +130,63 @@ func _physics_process(delta: float) -> void:
 	_play_move_anim()
 	move_and_slide()
 	_check_ocean_boundary()
+	_update_aim()
+
+
+func _handle_dodge_physics(delta: float) -> void:
+	ghost_timer -= delta
+	if ghost_timer <= 0.0:
+		ghost_timer = ghost_interval
+		combat.spawn_dodge_ghost()
+
+	velocity.x = combat.dodge_dir.x * dodge_speed
+	velocity.z = combat.dodge_dir.z * dodge_speed
+
+	_play_anim("dodge")
+	move_and_slide()
+	_check_ocean_boundary()
+	_update_aim()
+
+
+func _update_aim() -> void:
+	if camera == null: return
+	var mouse_pos := get_viewport().get_mouse_position()
+	var ray_origin := camera.project_ray_origin(mouse_pos)
+	var ray_dir := camera.project_ray_normal(mouse_pos)
+	if abs(ray_dir.y) < 0.001: return
+	var t := (global_position.y - ray_origin.y) / ray_dir.y
+	var world_mouse := ray_origin + ray_dir * t
+	var aim := world_mouse - global_position
+	aim.y = 0.0
+	if aim.length_squared() < 0.001: return
+	_facing_dir = aim.normalized()
+	weapon_holder.look_at(global_position + _facing_dir, Vector3.UP)
+
+
+func get_facing_dir() -> Vector3:
+	return _facing_dir
+
+
+func _on_night_changed(active: bool) -> void:
+	if spotlight: spotlight.visible = active
+
+
+func _on_health_changed(current: int, _maximum: int) -> void:
+	HP = current
+
+
+func _on_player_died() -> void:
+	set_physics_process(false)
+
+
+# FIX: signal now carries a Weapon node directly, no need to call get_equipped_weapon_node()
+func _on_equipped_weapon_changed(weapon_node: Weapon) -> void:
+	if weapon_node == null:
+		for child in weapon_holder.get_children():
+			child.queue_free()
+		combat.equip_weapon_node(null)
+		return
+	equip_weapon(weapon_node)
 
 func _check_ocean_boundary() -> void:
 	if global_position.y <= WATER_Y_LEVEL:
@@ -117,8 +200,7 @@ func _check_ocean_boundary() -> void:
 
 
 func _push_back_to_land() -> void:
-	if not has_valid_position:
-		return
+	if not has_valid_position: return
 	global_position = previous_valid_position
 	velocity = Vector3.ZERO
 
@@ -149,10 +231,9 @@ func _log_inventory() -> void:
 	])
 
 func _play_move_anim() -> void:
-	var is_moving = Input.is_action_pressed("W") or \
-					Input.is_action_pressed("S") or \
-					Input.is_action_pressed("A") or \
-					Input.is_action_pressed("D")
+	var is_moving := Input.is_action_pressed("W") or Input.is_action_pressed("S") \
+		or Input.is_action_pressed("A") or Input.is_action_pressed("D")
+
 	if Input.is_action_pressed("W"): _play_anim("walk_back")
 	elif Input.is_action_pressed("S"): _play_anim("walk_front")
 	elif Input.is_action_pressed("A"): _play_anim("walk_left")
@@ -160,7 +241,7 @@ func _play_move_anim() -> void:
 	else: _play_anim("idle")
 	
 	if audio_player:
-		if is_moving and not is_dodging:
+		if is_moving and not combat.is_dodging:
 			_play_walk_sound()
 		else:
 			if audio_player.playing and audio_player.stream == preload("res://assets/audio/player_walk.mp3"):
@@ -168,7 +249,7 @@ func _play_move_anim() -> void:
 
 func _play_walk_sound() -> void:
 	if audio_player and not audio_player.playing:
-		audio_player.stream = preload("res://assets/audio/player_walk.mp3")
+		audio_player.stream = _SFX_WALK
 		audio_player.volume_db = 1.0
 		audio_player.pitch_scale = randf_range(0.95, 1.05)
 		audio_player.play()
@@ -176,7 +257,7 @@ func _play_walk_sound() -> void:
 func _play_dodge_sound() -> void:
 	if audio_player:
 		audio_player.stop()
-		audio_player.stream = preload("res://assets/audio/player_dodge.mp3")
+		audio_player.stream = _SFX_DODGE
 		audio_player.volume_db = 10.0
 		audio_player.pitch_scale = 1.5
 		audio_player.play()
