@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://sheavwaiaj2f"]
+
+[ext_resource type="Script" uid="uid://dfcynvdmcoqeh" path="res://scripts/Fish/tank_fish.gd" id="1_xnf4e"]
+[ext_resource type="Texture2D" uid="uid://ba4th5bjeoh1s" path="res://assets/sprites/tank.png" id="2_egiva"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wgsmi"]
+size = Vector3(3.8293762, 1.8964233, 0.3203659)
+
+[node name="Tank_Fish" type="CharacterBody3D" unique_id=807799453]
+collision_layer = 2
+script = ExtResource("1_xnf4e")
+
+[node name="Sprite3D" type="Sprite3D" parent="." unique_id=162387953]
+transform = Transform3D(1, 0, 0, 0, 0.9077774, 0.41945207, 0, -0.41945207, 0.9077774, 0, 0.9350883, 0)
+texture = ExtResource("2_egiva")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=964106439]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.018753052, 0.94815063, -0.0062217712)
+shape = SubResource("BoxShape3D_wgsmi")

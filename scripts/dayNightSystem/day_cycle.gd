@@ -1,6 +1,6 @@
 extends Node3D
 signal day_night_changed(is_night_active: bool)
-@export var day_length_sec: int = 360
+@export var day_length_sec: int = 360.0
 @export var speed_factor: float = 1.0
 @onready var light: DirectionalLight3D = $DirectionalLight3D
 @onready var world_env: WorldEnvironment = $WorldEnvironment
