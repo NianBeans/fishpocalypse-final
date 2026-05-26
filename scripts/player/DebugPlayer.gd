@@ -115,15 +115,6 @@ func _physics_process(delta: float) -> void:
 	velocity.x = input_dir.x * speed
 	velocity.z = input_dir.z * speed
 
-	if Input.is_action_just_pressed("DODGE") and input_dir != Vector3.ZERO:
-		is_dodging = true
-		dodge_timer = dodge_time
-		dodge_dir = input_dir
-		ghost_timer = 0.0
-		was_moving_before_dodge = (input_dir != Vector3.ZERO)
-		_play_dodge_sound()
-		return
-
 	if Input.is_action_just_pressed("SHOOT"):
 		print("Shoot! (CombatSystem not yet wired — Phase 3)")
 
@@ -186,7 +177,12 @@ func _on_equipped_weapon_changed(weapon_node: Weapon) -> void:
 			child.queue_free()
 		combat.equip_weapon_node(null)
 		return
-	equip_weapon(weapon_node)
+	for child in weapon_holder.get_children():
+		if child != weapon_node:
+			child.queue_free()
+	if weapon_node.get_parent() != weapon_holder:
+		weapon_holder.add_child(weapon_node)
+	combat.equip_weapon_node(weapon_node)
 
 func _check_ocean_boundary() -> void:
 	if global_position.y <= WATER_Y_LEVEL:
@@ -210,9 +206,6 @@ func _take_damage(amount: float) -> void:
 	health.take_damage(amount)
 	invincibility_timer = INVINCIBILITY_TIME
 	print("[Player] took %.1f damage" % amount)
-
-func _on_night_changed(active: bool) -> void:
-	if spotlight: spotlight.visible = active
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
@@ -241,7 +234,7 @@ func _play_move_anim() -> void:
 	else: _play_anim("idle")
 	
 	if audio_player:
-		if is_moving and not combat.is_dodging:
+		if is_moving and not is_dodging:
 			_play_walk_sound()
 		else:
 			if audio_player.playing and audio_player.stream == preload("res://assets/audio/player_walk.mp3"):
@@ -266,6 +259,34 @@ func _play_anim(name: String) -> void:
 	if current_anim == name: return
 	current_anim = name
 	anim.play(name)
+
+func deduct_sp(amount: float) -> void:
+	SP = max(SP - amount, 0)
+
+
+func deduct_cp(amount: float) -> void:
+	CP = max(CP - amount, 0)
+
+
+func block_cp_recharge(duration: float) -> void:
+	cp_recharge_blocked = true
+	cp_recharge_timer = duration
+
+
+func start_dodge(direction: Vector3) -> void:
+	is_dodging = true
+	dodge_timer = dodge_time
+	dodge_dir = direction
+	ghost_timer = 0.0
+	was_moving_before_dodge = (direction != Vector3.ZERO)
+
+
+func end_dodge() -> void:
+	is_dodging = false
+	ghost_timer = 0.0
+	if was_moving_before_dodge:
+		_play_walk_sound()
+
 
 func _spawn_dodge_ghost() -> void:
 	var ghost := Node3D.new()
