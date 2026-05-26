@@ -17,17 +17,23 @@
 [ext_resource type="Texture2D" uid="uid://cv4ugy50jeh4i" path="res://assets/resources/cloud_noise.tres" id="13_g63d6"]
 [ext_resource type="Script" uid="uid://d2m8wwurpal4s" path="res://scripts/fishSystem/fishing_system.gd" id="14_fsys"]
 [ext_resource type="ArrayMesh" uid="uid://dxqp0wkpiex87" path="res://assets/models/kahoy/Sketchfab_Scene_coconut_tree_coconut_tree_mat_0.res" id="14_qrpbx"]
-[ext_resource type="PackedScene" path="res://scenes/FishingRelated/fishing_minigame.tscn" id="15_fmg"]
+[ext_resource type="Script" uid="uid://cb2jjm11a4e1i" path="res://scripts/EnvironmentRelated/dagat_script.gd" id="15_auh40"]
+[ext_resource type="PackedScene" uid="uid://cgxmpu1beld0d" path="res://scenes/FishingRelated/fishing_minigame.tscn" id="15_fmg"]
+[ext_resource type="AudioStream" uid="uid://om8oo53ef3fb" path="res://assets/audio/nature_sea.mp3" id="15_ruire"]
 [ext_resource type="PackedScene" path="res://scenes/FishingRelated/fishing_spot.tscn" id="16_fsp"]
 [ext_resource type="Resource" uid="uid://dyjmr7uqctvpk" path="res://assets/resources/items/items_db.tres" id="17_db"]
+[ext_resource type="AudioStream" uid="uid://c7hcdv2c20g5g" path="res://assets/audio/nature_wind.mp3" id="17_mgn8j"]
+[ext_resource type="AudioStream" uid="uid://bsjj75pl8hp15" path="res://assets/audio/nature_bird.mp3" id="18_663dh"]
 [ext_resource type="Resource" uid="uid://lih8tf53aotr" path="res://assets/resources/rarities/rarity_config.tres" id="18_rc"]
 [ext_resource type="PackedScene" uid="uid://x0tobd048vlo" path="res://scenes/EnemyRelated/enemySpawner.tscn" id="21_v3fq3"]
-[ext_resource type="PackedScene" uid="uid://2kqy5yq4kdod" path="res://scenes/EnemyRelated/enemy.tscn" id="22_0f85l"]
 [ext_resource type="PackedScene" uid="uid://dwr1m6px173c6" path="res://scenes/DayNightSystem/dayNightSystem.tscn" id="23_bv014"]
 [ext_resource type="PackedScene" uid="uid://e1camerarig3q5" path="res://scenes/player/CameraRig.tscn" id="24_cr"]
 [ext_resource type="Script" uid="uid://d0testdmy1p4r" path="res://scripts/test_dummy.gd" id="25_td"]
 [ext_resource type="Script" uid="uid://butapasd4olx0" path="res://scripts/components/health_component.gd" id="26_hc"]
 [ext_resource type="Script" uid="uid://c9debughd5m3n" path="res://scripts/player/debug_hud.gd" id="27_dh"]
+[ext_resource type="PackedScene" uid="uid://sheavwaiaj2f" path="res://scenes/EnemyRelated/tank_fish.tscn" id="24_oj3ja"]
+[ext_resource type="PackedScene" uid="uid://by4e1q3ce1ehm" path="res://scenes/EnemyRelated/fish.tscn" id="25_mlmqm"]
+[ext_resource type="PackedScene" uid="uid://hxknigqyh2fs" path="res://scenes/EnemyRelated/ranged_fish.tscn" id="26_mlmqm"]
 
 [sub_resource type="Texture2D" id="Texture2D_p1dug"]
 resource_local_to_scene = false
@@ -93,6 +99,9 @@ material = SubResource("ShaderMaterial_61ffe")
 [sub_resource type="BoxShape3D" id="BoxShape3D_qrpbx"]
 size = Vector3(1, 4.9920654, 1)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_ruire"]
+size = Vector3(67, 5, 150)
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_g63d6"]
 render_priority = 0
 shader = ExtResource("12_b37wp")
@@ -113,8 +122,8 @@ size = Vector3(1.0, 2.0, 1.0)
 
 [node name="DN_CYCLE" parent="." unique_id=1953072460 instance=ExtResource("23_bv014")]
 transform = Transform3D(0.7071067, 0.49999997, -0.49999994, 0, 0.70710677, 0.7071067, 0.7071067, -0.49999997, 0.49999994, 0, 90, 10)
-day_length_sec = 160
-speed_factor = 10.0
+day_length_sec = 20
+speed_factor = 20.0
 
 [node name="ISLAND" type="Node3D" parent="." unique_id=780296146]
 
@@ -621,8 +630,46 @@ shape = SubResource("BoxShape3D_qrpbx")
 [node name="Foliages" type="Node3D" parent="ISLAND" unique_id=360004925]
 visible = false
 
-[node name="SKY" type="Node3D" parent="." unique_id=403064684]
-transform = Transform3D(150, 0, 0, 0, 150, 0, 0, 0, 150, 0, 71.67545, 0)
+[node name="AudioSources" type="Node3D" parent="ISLAND" unique_id=881782534]
+
+[node name="Dagat" type="Node3D" parent="ISLAND/AudioSources" unique_id=487470996]
+
+[node name="Node3D" type="Area3D" parent="ISLAND/AudioSources/Dagat" unique_id=550617724]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.34724, 3.8824024, 0)
+script = ExtResource("15_auh40")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ISLAND/AudioSources/Dagat/Node3D" unique_id=1584707894]
+shape = SubResource("BoxShape3D_ruire")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="ISLAND/AudioSources/Dagat/Node3D" unique_id=1037223794]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.28279114, 0, 0)
+stream = ExtResource("15_ruire")
+
+[node name="Node3D2" type="Area3D" parent="ISLAND/AudioSources/Dagat" unique_id=1745178279]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.68038, 3.8824024, 0)
+script = ExtResource("15_auh40")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ISLAND/AudioSources/Dagat/Node3D2" unique_id=330814029]
+shape = SubResource("BoxShape3D_ruire")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="ISLAND/AudioSources/Dagat/Node3D2" unique_id=50180758]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.28279114, 0, 0)
+stream = ExtResource("15_ruire")
+
+[node name="Wind" type="AudioStreamPlayer" parent="ISLAND/AudioSources" unique_id=607537240]
+stream = ExtResource("17_mgn8j")
+autoplay = true
+playback_type = 1
+parameters/looping = true
+
+[node name="Bird" type="AudioStreamPlayer" parent="ISLAND/AudioSources" unique_id=849614213]
+stream = ExtResource("18_663dh")
+autoplay = true
+playback_type = 1
+parameters/looping = true
+
+[node name="SKY" type="Node3D" parent="." unique_id=1829971248]
+transform = Transform3D(200, 0, 0, 0, 200, 0, 0, 0, 200, 0, 71.67545, 0)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="SKY" unique_id=169244059]
 layers = 1023
@@ -633,11 +680,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.867311, 0.5601834, -17.111
 disable_mode = 2
 
 [node name="FishingSpot" parent="." unique_id=1985687269 instance=ExtResource("16_fsp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.83638, 0.5590067, -20.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.223, 0, -10.332)
 
 [node name="Spawner" parent="." unique_id=1235847215 node_paths=PackedStringArray("player") instance=ExtResource("21_v3fq3")]
 player = NodePath("../Player")
-enemy = ExtResource("22_0f85l")
+tanky_fish = ExtResource("24_oj3ja")
+normal_fish = ExtResource("25_mlmqm")
+ranged_fish = ExtResource("26_mlmqm")
 
 [node name="FishingSystem" type="Node" parent="." unique_id=670019011]
 script = ExtResource("14_fsys")
