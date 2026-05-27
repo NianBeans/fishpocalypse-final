@@ -1,3 +1,4 @@
+# scripts/fishSystem/fishing_system.gd
 class_name FishingSystem
 extends Node
 
@@ -9,9 +10,12 @@ const BASE_RARITY_WEIGHTS: Array[float] = [100.0, 60.0, 30.0, 10.0, 3.0, 1.0]
 @export var minigame: FishingMinigame
 @export var item_spawner: ItemSpawner
 
+## World-space center of the island. Used to compute which direction faces water.
+## Set this once in the Inspector to match your island's center position.
+@export var island_center: Vector3 = Vector3.ZERO
+
 var _can_fish: bool = false
-var _in_spot: bool = false
-var _current_spot: FishingSpot = null
+var _in_shore_zone: bool = false
 var _player: Node3D = null
 var _locked_player: Node3D = null
 var _game_state: Node = null
@@ -35,7 +39,7 @@ func _ready() -> void:
 		_game_state.transition_started.connect(_on_day_ended)
 	minigame.caught.connect(_on_caught)
 	minigame.failed.connect(_on_failed)
-	call_deferred("_connect_fishing_spots")
+	call_deferred("_connect_shore_zones")
 
 func _on_day_started() -> void:
 	_can_fish = true
@@ -47,9 +51,7 @@ func _on_day_ended() -> void:
 		_unfreeze_player()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("INTERACT"):
-		print("[FishingSystem] F pressed | can_fish:%s | in_spot:%s | minigame_null:%s" % [_can_fish, _in_spot, minigame == null])
-	if not _can_fish or not _in_spot or minigame.is_active():
+	if not _can_fish or not _in_shore_zone or minigame.is_active():
 		return
 	if not InputMap.has_action("INTERACT"):
 		return
@@ -64,10 +66,37 @@ func _start_fishing() -> void:
 	if item == null:
 		push_warning("FishingSystem: catch pool empty (all weapons locked by spawn_day?)")
 		return
-	if _current_spot != null and _player != null:
-		_player.global_rotation.y = _current_spot.facing_marker.global_rotation.y
+	# Face the player toward water and play the matching fishing animation
+	var water_dir := _get_water_direction()
+	if _player != null and water_dir.length_squared() > 0.001:
+		_player.global_rotation.y = atan2(water_dir.x, water_dir.z)
+	var anim_name := _pick_fishing_anim(water_dir)
+	if _player != null and _player.has_method("play_fishing_anim"):
+		_player.play_fishing_anim(anim_name)
 	minigame.start_wait(item, pole)
 	_freeze_player()
+
+## Returns the normalised XZ direction from the player toward the nearest water,
+## computed as "away from the island center". Y is zeroed out.
+func _get_water_direction() -> Vector3:
+	if _player == null:
+		return Vector3.FORWARD
+	var dir := _player.global_position - island_center
+	dir.y = 0.0
+	if dir.length_squared() < 0.001:
+		return Vector3.FORWARD
+	return dir.normalized()
+
+## Maps a water direction to the correct fishing animation name.
+## fish_front covers both +Z and -Z shores (no fish_back animation exists).
+## fish_right -> water is in the +X direction.
+## fish_left  -> water is in the -X direction.
+func _pick_fishing_anim(water_dir: Vector3) -> String:
+	var ax := absf(water_dir.x)
+	var az := absf(water_dir.z)
+	if az >= ax:
+		return "fish_front"
+	return "fish_right" if water_dir.x > 0.0 else "fish_left"
 
 func _roll_item(pole: FishingPoleData) -> Resource:
 	var pool: Array[Resource] = []
@@ -128,14 +157,16 @@ func _get_equipped_pole() -> FishingPoleData:
 	push_error("FishingSystem: no fishing poles in ItemsDB")
 	return null
 
-func _on_spot_entered(spot: FishingSpot, player: Node3D) -> void:
-	_in_spot = true
-	_current_spot = spot
+func _on_shore_entered(player: Node3D) -> void:
+	_in_shore_zone = true
 	_player = player
+	if _player.has_method("show_fishing_prompt"):
+		_player.show_fishing_prompt()
 
-func _on_spot_exited() -> void:
-	_in_spot = false
-	_current_spot = null
+func _on_shore_exited() -> void:
+	_in_shore_zone = false
+	if _player != null and _player.has_method("hide_fishing_prompt"):
+		_player.hide_fishing_prompt()
 	_player = null
 
 func _on_caught(item: Resource) -> void:
@@ -171,10 +202,10 @@ func _unfreeze_player() -> void:
 	_locked_player.set_physics_process(true)
 	_locked_player = null
 
-func _connect_fishing_spots() -> void:
-	for spot: FishingSpot in get_tree().get_nodes_in_group("fishing_spots"):
-		spot.player_entered.connect(_on_spot_entered)
-		spot.player_exited.connect(_on_spot_exited)
+func _connect_shore_zones() -> void:
+	for zone: ShoreZone in get_tree().get_nodes_in_group("shore_zones"):
+		zone.player_entered_shore.connect(_on_shore_entered)
+		zone.player_exited_shore.connect(_on_shore_exited)
 
 func _get_item_rarity(item: Resource) -> RarityTier:
 	var r: RarityTier = item.get("rarity") as RarityTier
