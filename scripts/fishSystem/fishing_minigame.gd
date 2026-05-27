@@ -43,6 +43,9 @@ var _pending_pole: FishingPoleData = null
 var _wait_timer: float = 0.0
 var _bite_window: float = 0.0
 
+func _ready() -> void:
+	_set_state(State.IDLE)
+
 func start_wait(item: Resource, pole: FishingPoleData) -> void:
 	_pending_item = item
 	_pending_pole = pole
