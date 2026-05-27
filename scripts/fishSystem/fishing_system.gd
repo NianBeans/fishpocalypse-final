@@ -79,26 +79,62 @@ func _start_fishing() -> void:
 	minigame.start_wait(item, pole)
 	_freeze_player()
 
-## Returns the normalised XZ direction from the player toward the nearest water,
-## computed as "away from the island center". Y is zeroed out.
+## Detects which cardinal direction has water by casting a short downward ray
+## in each of the 4 directions from the player. The direction where the ray
+## finds no ground (or ground below water level) is the water direction.
+## Falls back to island_center math if all raycasts hit solid ground.
 func _get_water_direction() -> Vector3:
 	if _player == null:
 		return Vector3.FORWARD
-	var dir := _player.global_position - island_center
-	dir.y = 0.0
-	if dir.length_squared() < 0.001:
-		return Vector3.FORWARD
-	return dir.normalized()
 
-## Maps a water direction to the correct fishing animation name.
-## fish_front covers both +Z and -Z shores (no fish_back animation exists).
-## fish_right -> water is in the +X direction.
-## fish_left  -> water is in the -X direction.
+	var space := _player.get_world_3d().direct_space_state
+	var probe_dist := 4.0   # how far to probe outward from player
+	var water_y    := -1.0  # ground hits below this y are treated as water
+
+	var dirs: Array[Vector3] = [
+		Vector3(0.0, 0.0,  1.0),  # +Z  south / toward camera
+		Vector3(0.0, 0.0, -1.0),  # -Z  north / away from camera
+		Vector3( 1.0, 0.0, 0.0),  # +X  east  / screen-right
+		Vector3(-1.0, 0.0, 0.0),  # -X  west  / screen-left
+	]
+
+	var water_dirs: Array[Vector3] = []
+	for d: Vector3 in dirs:
+		var probe := _player.global_position + d * probe_dist
+		var params := PhysicsRayQueryParameters3D.create(
+			probe + Vector3(0.0, 2.0, 0.0),
+			probe + Vector3(0.0, -6.0, 0.0)
+		)
+		params.exclude = [_player.get_rid()]
+		var hit := space.intersect_ray(params)
+		# No terrain hit, or hit is at/below water level → water is this way
+		if hit.is_empty() or (hit["position"] as Vector3).y < water_y:
+			water_dirs.append(d)
+
+	if not water_dirs.is_empty():
+		var combined := Vector3.ZERO
+		for d: Vector3 in water_dirs:
+			combined += d
+		if combined.length_squared() > 0.001:
+			return combined.normalized()
+
+	# Fallback: use island_center offset when all probes hit solid ground
+	var fallback := _player.global_position - island_center
+	fallback.y = 0.0
+	if fallback.length_squared() > 0.001:
+		return fallback.normalized()
+	return Vector3.FORWARD
+
+## Maps a water direction to a fishing animation.
+## +Z (south / sea below on screen) -> fish_front
+## -Z (north / sea above on screen) -> walk_back  (no fish_back sprite exists)
+## +X (east  / screen-right)        -> fish_right
+## -X (west  / screen-left)         -> fish_left
 func _pick_fishing_anim(water_dir: Vector3) -> String:
 	var ax := absf(water_dir.x)
 	var az := absf(water_dir.z)
 	if az >= ax:
-		return "fish_front"
+		return "fish_front" if water_dir.z > 0.0 else "walk_back"
 	return "fish_right" if water_dir.x > 0.0 else "fish_left"
 
 func _roll_item(pole: FishingPoleData) -> Resource:
