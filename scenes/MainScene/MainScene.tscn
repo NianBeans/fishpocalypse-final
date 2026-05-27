@@ -20,7 +20,6 @@
 [ext_resource type="Script" uid="uid://cb2jjm11a4e1i" path="res://scripts/EnvironmentRelated/dagat_script.gd" id="15_auh40"]
 [ext_resource type="PackedScene" uid="uid://cgxmpu1beld0d" path="res://scenes/FishingRelated/fishing_minigame.tscn" id="15_fmg"]
 [ext_resource type="AudioStream" uid="uid://om8oo53ef3fb" path="res://assets/audio/nature_sea.mp3" id="15_ruire"]
-[ext_resource type="PackedScene" path="res://scenes/FishingRelated/fishing_spot.tscn" id="16_fsp"]
 [ext_resource type="Resource" uid="uid://dyjmr7uqctvpk" path="res://assets/resources/items/items_db.tres" id="17_db"]
 [ext_resource type="Resource" uid="uid://lih8tf53aotr" path="res://assets/resources/rarities/rarity_config.tres" id="18_rc"]
 [ext_resource type="PackedScene" uid="uid://x0tobd048vlo" path="res://scenes/EnemyRelated/enemySpawner.tscn" id="21_v3fq3"]
@@ -659,9 +658,6 @@ mesh = SubResource("PlaneMesh_b37wp")
 [node name="Player" parent="." unique_id=478782437 instance=ExtResource("11_jwbod")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66.687, 1, -14.924)
 disable_mode = 2
-
-[node name="FishingSpot" parent="." unique_id=1985687269 instance=ExtResource("16_fsp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.223, 0, -10.332)
 
 [node name="Spawner" parent="." unique_id=1235847215 node_paths=PackedStringArray("player") instance=ExtResource("21_v3fq3")]
 player = NodePath("../Player")
