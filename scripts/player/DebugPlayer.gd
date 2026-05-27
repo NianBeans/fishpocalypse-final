@@ -7,6 +7,13 @@ extends CharacterBody3D
 @onready var camera: Camera3D = get_viewport().get_camera_3d()
 @onready var weapon_holder: Marker3D = $Kamot
 
+@onready var punch_hitbox: Area3D = $PunchHitbox 
+var _punch_timer: float = 0.0
+const PUNCH_COOLDOWN := 0.2
+const PUNCH_DAMAGE := 100.0
+const PUNCH_RANGE := 3
+var _punch_active := false
+
 var _facing_dir := Vector3.FORWARD
 
 @export var HP := 100
@@ -76,6 +83,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	save_timer += delta
+	if _punch_timer > 0.0: _punch_timer -= delta
 	if cp_recharge_blocked:
 		cp_recharge_timer -= delta
 		if cp_recharge_timer <= 0.0:
@@ -128,6 +136,62 @@ func _process(_delta: float) -> void:
 		var t := Time.get_ticks_msec() / 1000.0
 		_fishing_prompt.modulate.a = 0.6 + 0.4 * sin(t * 3.0)
 
+func _try_punch() -> void:
+	if _punch_timer > 0.0: return
+	if _punch_active: return
+	_punch_active = true
+	_punch_timer = PUNCH_COOLDOWN
+	_play_anim("attack")
+	_swing_weapon(PUNCH_COOLDOWN)
+
+	var move_dir := Vector3(velocity.x, 0.0, velocity.z).normalized()
+	if move_dir == Vector3.ZERO:
+		move_dir = _facing_dir
+
+	var hit_something := false
+	var steps := 5
+	for i in range(1, steps + 1):
+		var t := float(i) / float(steps)
+		punch_hitbox.global_position = global_position + move_dir * (PUNCH_RANGE * t)
+		punch_hitbox.monitoring = true
+
+		await get_tree().physics_frame
+
+		for body in punch_hitbox.get_overlapping_bodies():
+			if body == self: continue
+			if hit_something: continue
+			if body.has_method("take_damage"):
+				body.take_damage(PUNCH_DAMAGE)
+				hit_something = true
+				print("[Punch] hit %s for %.1f" % [body.name, PUNCH_DAMAGE])
+				var knockback_dir := (body.global_position - global_position).normalized()
+				knockback_dir.y = 0.0
+				body.velocity += knockback_dir * 8.0
+
+		punch_hitbox.monitoring = false
+
+		if hit_something: break
+
+	if not hit_something:
+		print("[Punch] missed")
+
+	punch_hitbox.global_position = global_position
+	_punch_active = false
+	
+func _swing_weapon(duration: float) -> void:
+	_play_anim("attack")
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(
+		weapon_holder, "rotation_degrees",
+		weapon_holder.rotation_degrees + Vector3(0, 45, 0),
+		duration * 0.35
+	)
+	tween.tween_property(
+		weapon_holder, "rotation_degrees",
+		weapon_holder.rotation_degrees,
+		duration * 0.65
+	)
 
 func _update_aim() -> void:
 	if camera == null: return
