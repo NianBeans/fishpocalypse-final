@@ -287,4 +287,3 @@ func _spawn_dodge_ghost() -> void:
 	ghost.global_position = global_position
 	ghost.global_rotation = global_rotation
 	ghost.setup(anim, anim.frame)
-	
