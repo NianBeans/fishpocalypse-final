@@ -229,6 +229,7 @@ func _update_aim() -> void:
 	if aim.length_squared() < 0.001: return
 	_facing_dir = aim.normalized()
 	weapon_holder.look_at(global_position + _facing_dir, Vector3.UP)
+	weapon_holder.rotate_y(PI)
 
 
 func get_facing_dir() -> Vector3:
