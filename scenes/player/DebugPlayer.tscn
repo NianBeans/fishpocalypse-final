@@ -12,7 +12,7 @@
 [ext_resource type="Script" uid="uid://xpnm82ynjqsm" path="res://scripts/itemSystem/items_db.gd" id="7_blpqp"]
 [ext_resource type="Script" uid="uid://bui002s885pkf" path="res://scripts/ui/player_hud.gd" id="8_hud"]
 [ext_resource type="Texture2D" uid="uid://bvosluw4bj2ob" path="res://assets/sprites/border_health.png" id="12_bmswy"]
-[ext_resource type="Texture2D" uid="uid://bmrovxx7002pj" path="res://assets/sprites/fist.png" id="13_blpqp"]
+[ext_resource type="Texture2D" uid="uid://odyn88wwwt5i" path="res://assets/sprites/fists.png" id="13_blpqp"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_dp"]
 radius = 0.4
@@ -332,25 +332,67 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_blpqp"]
+atlas = ExtResource("13_blpqp")
+region = Rect2(0, 0, 166, 166)
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_1p3k1"]
 atlas = ExtResource("13_blpqp")
-region = Rect2(0, 0, 306, 408)
+region = Rect2(0, 166, 166, 166)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_5o41x"]
 atlas = ExtResource("13_blpqp")
-region = Rect2(306, 0, 306, 408)
+region = Rect2(166, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wpf55"]
+atlas = ExtResource("13_blpqp")
+region = Rect2(332, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r30pt"]
+atlas = ExtResource("13_blpqp")
+region = Rect2(166, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nijgu"]
+atlas = ExtResource("13_blpqp")
+region = Rect2(332, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ucx8u"]
+atlas = ExtResource("13_blpqp")
+region = Rect2(0, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_or8t6"]
+atlas = ExtResource("13_blpqp")
+region = Rect2(166, 332, 166, 166)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_wpf55"]
 animations = [{
 "frames": [{
 "duration": 1.0,
+"texture": SubResource("AtlasTexture_blpqp")
+}, {
+"duration": 1.0,
 "texture": SubResource("AtlasTexture_1p3k1")
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_5o41x")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wpf55")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r30pt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nijgu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ucx8u")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_or8t6")
 }],
 "loop": true,
-"name": &"default",
+"name": &"new_animation",
 "speed": 5.0
 }]
 
@@ -567,12 +609,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5360865)
 collision_mask = 2
 
 [node name="FistSprite" type="AnimatedSprite3D" parent="PunchHitbox" unique_id=673358594]
-transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0)
 billboard = 1
 shaded = true
 sprite_frames = SubResource("SpriteFrames_wpf55")
-frame = 1
-frame_progress = 0.042966034
+animation = &"new_animation"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="PunchHitbox" unique_id=1154839011]
 transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0.5373771)

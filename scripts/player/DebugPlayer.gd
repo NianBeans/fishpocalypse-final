@@ -11,10 +11,10 @@ extends CharacterBody3D
 @onready var punch_hitbox: Area3D = $PunchHitbox 
 var _punch_timer: float = 0.0
 const PUNCH_COOLDOWN := 0.2
-const PUNCH_DAMAGE := 100
+const PUNCH_DAMAGE := 5
 const PUNCH_RANGE := 3
 var _punch_active := false
-const PUNCH_SP_COST := 17.0
+const PUNCH_SP_COST := 14.0
 
 var _facing_dir := Vector3.FORWARD
 
@@ -149,9 +149,7 @@ func _try_punch() -> void:
 	_execute_punch()
 
 func _execute_punch() -> void:
-	var move_dir: Vector3 = Vector3(velocity.x, 0.0, velocity.z).normalized()
-	if move_dir == Vector3.ZERO:
-		move_dir = _facing_dir
+	var move_dir: Vector3 = _facing_dir
 
 	# spawn a temporary fist sprite for this punch
 	var fist: AnimatedSprite3D = fist_sprite.duplicate()
@@ -161,11 +159,37 @@ func _execute_punch() -> void:
 	fist.rotation.y = angle_y
 	fist.rotation.x = 0.0
 
-	var dot_right: float = move_dir.dot(Vector3(1, 0, 0))
-	if dot_right >= 0.0:
-		fist.frame = 0
+	# dot products for direction
+	var dot_right: float = move_dir.dot(Vector3(1, 0, 0))   # +X = right
+	var dot_down: float = move_dir.dot(Vector3(0, 0, 1))    # +Z = screen down (toward player)
+	var abs_right: float = abs(dot_right)
+	var abs_down: float = abs(dot_down)
+
+	# diagonal threshold — if both axes contribute roughly equally it's diagonal
+	var diag: float = 0.6
+
+	if abs_right < diag and abs_down >= diag:
+		# mostly vertical
+		if dot_down >= 0.0:
+			fist.frame = 0  # below player
+		else:
+			fist.frame = 1  # above player
+	elif abs_right >= diag and abs_down < diag:
+		# mostly horizontal
+		if dot_right >= 0.0:
+			fist.frame = 2  # right
+		else:
+			fist.frame = 3  # left
 	else:
-		fist.frame = 1
+		# diagonal
+		if dot_right >= 0.0 and dot_down < 0.0:
+			fist.frame = 4  # upper right
+		elif dot_right >= 0.0 and dot_down >= 0.0:
+			fist.frame = 5  # lower right
+		elif dot_right < 0.0 and dot_down < 0.0:
+			fist.frame = 6  # upper left
+		else:
+			fist.frame = 7  # lower left
 
 	var start_offset: float = 0.5
 	fist.visible = true
