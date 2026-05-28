@@ -285,13 +285,6 @@ func _take_damage(amount: float) -> void:
 	invincibility_timer = INVINCIBILITY_TIME
 	print("[Player] took %.1f damage" % amount)
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_accept"):
-		inventory.use_item("item_slot_1")
-		_log_inventory()
-	if event.is_action_pressed("ui_cancel"):
-		inventory.drop_item("main_slot")
-		_log_inventory()
 
 func _log_inventory() -> void:
 	print("[Inventory] main=%s | secondary=%s | item1=%s | item2=%s" % [
