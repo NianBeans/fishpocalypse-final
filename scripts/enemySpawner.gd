@@ -20,7 +20,7 @@ extends Node3D
 @export_group("Debug")
 @export var dbg: bool = false
 
-const _WEIGHTS: PackedInt32Array = [35, 50, 15]
+const _WEIGHTS: PackedInt32Array = [40, 50, 10]
 const _TOTAL_WEIGHT: int         = 100
 const SPAWN_DISTANCE: float      = 50.0
 const POOL_SIZE: int             = 80
@@ -146,7 +146,7 @@ func _process(delta: float) -> void:
 func _spawn(pos: Vector3, elite: bool = false) -> void:
 	var enemy: Node3D = _acquire_enemy()
 	if enemy == null: return
-	
+
 	enemy.global_position  = pos
 	enemy.player_reference = player
 	enemy.is_elite         = elite
@@ -154,10 +154,11 @@ func _spawn(pos: Vector3, elite: bool = false) -> void:
 	enemy.set_process(true)
 	enemy.set_physics_process(true)
 	enemy.reset()
-	
+	enemy.apply_day_scaling(_day_count)  # apply day scaling after reset
+
 	current_capacity      += 1
 	_population_remaining -= 1
-	
+
 	if dbg: _log_count("spawn")
 	
 	

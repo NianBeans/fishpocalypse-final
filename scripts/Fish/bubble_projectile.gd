@@ -2,7 +2,7 @@ extends Area3D
 
 var direction: Vector3  = Vector3.ZERO
 var damage: int         = 6
-var speed: float        = 4.0
+var speed: float        = 2.9
 var turn_speed: float   = 2.0
 var target_scale: float = 1.0
 var grow_duration: float = 0.4

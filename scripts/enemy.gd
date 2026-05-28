@@ -104,6 +104,13 @@ func _deal_damage_to_player(p: CharacterBody3D) -> void:
 func take_damage(amount: int) -> void:
 	health -= amount
 	if health <= 0: die()
+
+func apply_day_scaling(day: int) -> void:
+	var hp_mult: float = 1.0 + (day * 0.02)
+	var dmg_mult: float = 1.0 + (day * 0.01)
+	max_health = int(max_health * hp_mult)
+	health = max_health
+	damage = int(damage * dmg_mult)
 	
 func die() -> void:
 	# notify spawner so it returns this node to the pool

@@ -6,7 +6,7 @@ extends "res://scripts/enemy.gd"
 const ATTACK_RANGE: float      = 18.0
 const PREFERRED_INNER: float   = 10.0
 const PREFERRED_OUTER: float   = 14.0
-const ATTACK_COOLDOWN: float   = 1.5
+const ATTACK_COOLDOWN: float   = 5.0
 const SHOOT_FRAME_DURATION: float = 0.4
 
 @onready var _sprite: AnimatedSprite3D = $AnimatedSprite3D
