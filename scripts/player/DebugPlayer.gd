@@ -61,7 +61,7 @@ var was_moving_before_dodge := false
 const _SFX_WALK  = preload("res://assets/audio/player_walk.mp3")
 const _SFX_DODGE = preload("res://assets/audio/player_dodge.mp3")
 const _SFX_HURT  = preload("res://assets/audio/player_hurt.mp3")
-
+const _SFX_SPLASH = preload("res://assets/audio/water_splash.mp3")
 
 func _ready() -> void:
 	fist_sprite.visible = false
@@ -261,6 +261,7 @@ func _on_equipped_weapon_changed(weapon_node: Weapon) -> void:
 func _check_ocean_boundary() -> void:
 	if global_position.y <= WATER_Y_LEVEL:
 		_push_back_to_land()
+		_play_splash_sound()
 	else:
 		if is_on_floor() and save_timer >= SAVE_INTERVAL:
 			save_timer = 0.0
@@ -366,7 +367,6 @@ func _play_walk_sound() -> void:
 		audio_player.volume_db = 1.0
 		audio_player.pitch_scale = randf_range(0.95, 1.05)
 		audio_player.play()
-
 func _play_dodge_sound() -> void:
 	if audio_player:
 		audio_player.stop()
@@ -374,14 +374,18 @@ func _play_dodge_sound() -> void:
 		audio_player.volume_db = 10.0
 		audio_player.pitch_scale = 1.5
 		audio_player.play()
-
 func _play_hurt_sound() -> void:
 	if audio_player:
 		audio_player.stream = _SFX_HURT
 		audio_player.volume_db = 1.0
 		audio_player.pitch_scale = 1.0
 		audio_player.play()
-
+func _play_splash_sound() -> void:
+	if audio_player:
+		audio_player.stream = _SFX_SPLASH
+		audio_player.volume_db = 1.0
+		audio_player.pitch_scale = 1.0
+		audio_player.play()
 
 func _play_anim(name: String) -> void:
 	if current_anim == name: return
