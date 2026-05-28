@@ -15,11 +15,10 @@ const _INV_GROW_DUR: float = 0.25
 var _timer: float = 0.0
 var _grew: bool = false
 var _target: CharacterBody3D = null
-
-# Reference to the pool that owns this projectile
 var _pool: Node = null
+var _retired: bool = false
 func _ready() -> void:
-	monitoring = true
+	monitoring = false
 	monitorable = false
 	body_entered.connect(_on_body_entered)
 	_target = get_tree().get_first_node_in_group(&"player") as CharacterBody3D
@@ -27,15 +26,16 @@ func _ready() -> void:
 	
 	
 func init(dir: Vector3, dmg: int, pool: Node = null) -> void:
-	# Reset everything for reuse
 	direction = dir
 	damage = dmg
 	_timer = 0.0
 	_grew = false
+	_retired = false
 	_pool = pool
-	
+
 	scale = Vector3.ONE * _SCALE_EPSILON
 	visible = true
+	monitoring = true
 	set_process(true)
 	
 	
@@ -70,5 +70,7 @@ func _on_body_entered(body: Node3D) -> void:
 	
 	
 func _retire() -> void:
+	if _retired: return
+	_retired = true
 	if _pool != null: _pool.release(self)
 	else: queue_free()

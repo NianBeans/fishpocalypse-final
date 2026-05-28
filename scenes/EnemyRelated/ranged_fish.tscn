@@ -31,9 +31,6 @@ animations = [{
 "speed": 2.0
 }]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_5o712"]
-size = Vector3(0.49487305, 0.62298584, 0.22741699)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_j6bek"]
 size = Vector3(1.4510918, 1.8967285, 0.31103516)
 
@@ -59,11 +56,6 @@ frame_progress = 0.92419356
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=196106900]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.028360367, -0.015014648, 0)
 shape = SubResource("BoxShape3D_j6bek")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1013894883]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0032958984, -0.010406494,
--0.0005493164)
-shape = SubResource("BoxShape3D_5o712")
 
 [node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="." unique_id=1499587462]
 stream = ExtResource("4_m6y2y")

@@ -14,6 +14,11 @@ var is_night: bool = false
 var sky_material: ProceduralSkyMaterial
 var _env: Environment
 
+var _day_sky_top: Color
+var _day_sky_horizon: Color
+var _day_ground_bottom: Color
+var _day_ground_horizon: Color
+
 var MORNING_MUSIC = preload("res://assets/audio/morning_audio.mp3")
 # ADDED: night tracks pool — picked randomly on each night transition
 var NIGHT_MUSIC: Array = [
@@ -31,6 +36,11 @@ func _ready() -> void:
 	_env = world_env.environment
 	if _env and _env.sky and _env.sky.sky_material:
 		sky_material = _env.sky.sky_material as ProceduralSkyMaterial
+	if sky_material:
+		_day_sky_top = sky_material.sky_top_color
+		_day_sky_horizon = sky_material.sky_horizon_color
+		_day_ground_bottom = sky_material.ground_bottom_color
+		_day_ground_horizon = sky_material.ground_horizon_color
 	_set_day_state()
 	
 func _process(delta: float) -> void:
@@ -43,6 +53,11 @@ func _set_day_state() -> void:
 	is_night = false
 	light.light_energy = 1.5
 	light.light_color = Color("ffff9aff")
+	if sky_material:
+		sky_material.sky_top_color = _day_sky_top
+		sky_material.sky_horizon_color = _day_sky_horizon
+		sky_material.ground_bottom_color = _day_ground_bottom
+		sky_material.ground_horizon_color = _day_ground_horizon
 	if _env:
 		_env.background_mode = Environment.BG_SKY
 		_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY

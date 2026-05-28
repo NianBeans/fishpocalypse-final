@@ -29,7 +29,6 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _shot_delay_timer > 0.0: _shot_delay_timer -= delta
 
-	if Input.is_action_just_pressed("SHOOT"): fire()
 	if Input.is_action_just_pressed("DODGE"): dodge()
 
 	if Input.is_action_just_pressed("PRIMARY"):

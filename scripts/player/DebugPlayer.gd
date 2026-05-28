@@ -11,7 +11,7 @@ extends CharacterBody3D
 @onready var punch_hitbox: Area3D = $PunchHitbox 
 var _punch_timer: float = 0.0
 const PUNCH_COOLDOWN := 0.2
-const PUNCH_DAMAGE := 100.0
+const PUNCH_DAMAGE := 100
 const PUNCH_RANGE := 3
 var _punch_active := false
 const PUNCH_SP_COST := 17.0
@@ -343,6 +343,7 @@ func _play_hurt_sound() -> void:
 
 func _play_anim(name: String) -> void:
 	if current_anim == name: return
+	if not anim.sprite_frames.has_animation(name): return
 	current_anim = name
 	anim.play(name)
 

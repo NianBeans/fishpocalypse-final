@@ -61,10 +61,10 @@ func _shoot(dir: Vector3) -> void:
 		push_warning("Ranged enemy; no projectile_scene assigned")
 		return
 
-	var proj: Node = projectile_scene.instantiate()
-	get_tree().current_scene.add_child(proj)
+	var proj: Node = ProjectilePool.acquire()
+	if proj == null: return
 	proj.global_position = global_position + Vector3(dir.x * 1.5, 0.5, dir.z * 1.5)
-	proj.init(dir, damage)
+	proj.init(dir, damage, ProjectilePool)
 
 	if shoot_audio: shoot_audio.play()
 
