@@ -1,0 +1,136 @@
+[gd_scene format=3 uid="uid://bqmzr3inv5lot"]
+
+[ext_resource type="Script" uid="uid://dkwx7pn3slots" path="res://scripts/ui/inventory_slots.gd" id="1_islots"]
+
+[node name="InventorySlots" type="HBoxContainer"]
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -60.0
+offset_right = 222.0
+offset_bottom = -12.0
+grow_vertical = 0
+theme_override_constants/separation = 6
+script = ExtResource("1_islots")
+
+[node name="SlotMain" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(48, 48)
+color = Color(0.08, 0.08, 0.08, 0.85)
+
+[node name="Icon" type="TextureRect" parent="SlotMain"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+stretch_mode = 6
+
+[node name="KeyLabel" type="Label" parent="SlotMain"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -14.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 14.0
+text = "1"
+theme_override_font_sizes/font_size = 10
+
+[node name="SlotLabel" type="Label" parent="SlotMain"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "M"
+theme_override_font_sizes/font_size = 11
+
+[node name="SlotSecondary" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(48, 48)
+color = Color(0.08, 0.08, 0.08, 0.85)
+
+[node name="Icon" type="TextureRect" parent="SlotSecondary"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+stretch_mode = 6
+
+[node name="KeyLabel" type="Label" parent="SlotSecondary"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -14.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 14.0
+text = "2"
+theme_override_font_sizes/font_size = 10
+
+[node name="SlotLabel" type="Label" parent="SlotSecondary"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "S"
+theme_override_font_sizes/font_size = 11
+
+[node name="SlotItem1" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(48, 48)
+color = Color(0.08, 0.08, 0.08, 0.85)
+
+[node name="Icon" type="TextureRect" parent="SlotItem1"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+stretch_mode = 6
+
+[node name="KeyLabel" type="Label" parent="SlotItem1"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -14.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 14.0
+text = "3"
+theme_override_font_sizes/font_size = 10
+
+[node name="SlotLabel" type="Label" parent="SlotItem1"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "I1"
+theme_override_font_sizes/font_size = 11
+
+[node name="SlotItem2" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(48, 48)
+color = Color(0.08, 0.08, 0.08, 0.85)
+
+[node name="Icon" type="TextureRect" parent="SlotItem2"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+stretch_mode = 6
+
+[node name="KeyLabel" type="Label" parent="SlotItem2"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -14.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 14.0
+text = "4"
+theme_override_font_sizes/font_size = 10
+
+[node name="SlotLabel" type="Label" parent="SlotItem2"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "I2"
+theme_override_font_sizes/font_size = 11

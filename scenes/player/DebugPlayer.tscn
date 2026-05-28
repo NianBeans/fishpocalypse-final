@@ -425,12 +425,13 @@ animation = &"idle"
 
 [node name="SpotLight3D" type="SpotLight3D" parent="." unique_id=1495656726]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 3.4519567, 0)
+visible = false
 light_color = Color(1, 0, 0, 1)
-light_energy = 5.0
+light_energy = 3.0
 light_bake_mode = 1
 shadow_enabled = true
-spot_range = 8.0
-spot_angle = 61.707783
+spot_range = 6.226308
+spot_angle = 49.290104
 
 [node name="Kamot" type="Marker3D" parent="." unique_id=265468261]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35141972, -0.22932763, 0.16790777)

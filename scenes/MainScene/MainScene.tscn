@@ -16,6 +16,8 @@
 [ext_resource type="Texture2D" uid="uid://kxdso5iygehk" path="res://assets/resources/wave_noise.tres" id="13_61ffe"]
 [ext_resource type="Texture2D" uid="uid://cv4ugy50jeh4i" path="res://assets/resources/cloud_noise.tres" id="13_g63d6"]
 [ext_resource type="Script" uid="uid://d2m8wwurpal4s" path="res://scripts/fishSystem/fishing_system.gd" id="14_fsys"]
+[ext_resource type="Texture2D" uid="uid://dkg22bs2y3afm" path="res://assets/sprites/splash.png" id="14_mlmqm"]
+[ext_resource type="Script" uid="uid://c4whb06t4dur5" path="res://scripts/EnvironmentRelated/dagat_splash.gd" id="14_nlggb"]
 [ext_resource type="ArrayMesh" uid="uid://dxqp0wkpiex87" path="res://assets/models/kahoy/Sketchfab_Scene_coconut_tree_coconut_tree_mat_0.res" id="14_qrpbx"]
 [ext_resource type="Script" uid="uid://cb2jjm11a4e1i" path="res://scripts/EnvironmentRelated/dagat_script.gd" id="15_auh40"]
 [ext_resource type="PackedScene" uid="uid://cgxmpu1beld0d" path="res://scenes/FishingRelated/fishing_minigame.tscn" id="15_fmg"]
@@ -25,7 +27,6 @@
 [ext_resource type="PackedScene" uid="uid://x0tobd048vlo" path="res://scenes/EnemyRelated/enemySpawner.tscn" id="21_v3fq3"]
 [ext_resource type="PackedScene" uid="uid://dwr1m6px173c6" path="res://scenes/DayNightSystem/dayNightSystem.tscn" id="23_bv014"]
 [ext_resource type="PackedScene" uid="uid://sheavwaiaj2f" path="res://scenes/EnemyRelated/tank_fish.tscn" id="24_oj3ja"]
-[ext_resource type="PackedScene" uid="uid://dujw7glgc57os" path="res://scenes/player/CameraRig.tscn" id="28_cr"]
 [ext_resource type="Script" uid="uid://d0testdmy1p4r" path="res://scripts/test_dummy.gd" id="29_td"]
 [ext_resource type="Script" uid="uid://butapasd4olx0" path="res://scripts/components/health_component.gd" id="30_hc"]
 [ext_resource type="PackedScene" uid="uid://dfygvlwksvhog" path="res://scenes/FishingRelated/shore_zone.tscn" id="31_nlggb"]
@@ -91,6 +92,31 @@ shader_parameter/pixel_size = 256.0
 [sub_resource type="PlaneMesh" id="PlaneMesh_cbjsr"]
 material = SubResource("ShaderMaterial_61ffe")
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_nlggb"]
+atlas = ExtResource("14_mlmqm")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_edxqr"]
+atlas = ExtResource("14_mlmqm")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_m30le"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nlggb")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_edxqr")
+}],
+"loop": false,
+"name": &"splash",
+"speed": 5.5
+}]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_nlggb"]
+points = PackedVector3Array(-1, 0, -1, -1, 0, 1, 1, 0, -1, 1, 0, 1)
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_qrpbx"]
 size = Vector3(1, 4.9920654, 1)
 
@@ -117,6 +143,8 @@ material = SubResource("ShaderMaterial_g63d6")
 
 [node name="DN_CYCLE" parent="." unique_id=1953072460 instance=ExtResource("23_bv014")]
 transform = Transform3D(0.7071067, 0.49999997, -0.49999994, 0, 0.70710677, 0.7071067, 0.7071067, -0.49999997, 0.49999994, 0, 90, 10)
+day_length_sec = 160
+speed_factor = 1.0
 
 [node name="ISLAND" type="Node3D" parent="." unique_id=780296146]
 
@@ -279,6 +307,27 @@ script = ExtResource("10_h6vph")
 [node name="Dagat" type="MeshInstance3D" parent="ISLAND" unique_id=1813932752]
 transform = Transform3D(150, 0, 0, 0, 150, 0, 0, 0, 150, 0, -1.5, 0)
 mesh = SubResource("PlaneMesh_cbjsr")
+script = ExtResource("14_nlggb")
+
+[node name="splash" type="AnimatedSprite3D" parent="ISLAND/Dagat" unique_id=781028323]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.379747, 0)
+top_level = true
+visible = false
+pixel_size = 0.05
+billboard = 2
+shaded = true
+double_sided = false
+alpha_scissor_threshold = 1.0
+texture_filter = 0
+sprite_frames = SubResource("SpriteFrames_m30le")
+animation = &"splash"
+autoplay = "splash"
+
+[node name="Area3D" type="Area3D" parent="ISLAND/Dagat" unique_id=1230704647]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ISLAND/Dagat/Area3D" unique_id=845940657]
+transform = Transform3D(0.99999994, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, 0, 0)
+shape = SubResource("ConvexPolygonShape3D_nlggb")
 
 [node name="Kahoys" type="Node3D" parent="ISLAND" unique_id=73657917]
 
@@ -818,5 +867,3 @@ rarity_config = ExtResource("18_rc")
 [node name="UI" type="CanvasLayer" parent="." unique_id=1882678914]
 
 [node name="FishingMinigame" parent="UI" unique_id=1396498718 instance=ExtResource("15_fmg")]
-
-[node name="CameraRig" parent="." unique_id=393608575 instance=ExtResource("28_cr")]
